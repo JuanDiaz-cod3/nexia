@@ -1,39 +1,203 @@
+/*
+  Adaptado de una plantilla publica de referencia (AsmrProg).
+  Se conserva la tecnica de animacion (paneles superpuestos + panel
+  lateral deslizante); los colores/tipografia usan los design tokens
+  definidos en index.css, no valores propios.
+*/
 .auth-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-subtle);
+  background-color: var(--color-bg-subtle);
 }
 
-.auth-card {
-  width: 320px;
+.auth-container {
+  background-color: var(--color-bg);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+  width: 768px;
+  max-width: 100%;
+  min-height: 460px;
+}
+
+.auth-form-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  text-align: left;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0 48px;
+  background-color: var(--color-bg);
+  transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
 }
 
-.auth-card h1 {
+/* Input envuelve el <input> en un div.input-group que no se estira solo
+   bajo align-items: center - lo forzamos a ancho completo aqui. */
+.auth-form-panel .input-group {
+  width: 100%;
+}
+
+.auth-form-panel--login {
+  z-index: 2;
+}
+
+.auth-form-panel--reset {
+  opacity: 0;
+  z-index: 1;
+}
+
+/* El estado lo controla la clase step-reset en .auth-page, que React
+   agrega/quita segun la respuesta del backend - nunca por un click libre
+   del usuario. */
+.auth-page.step-reset .auth-form-panel--login {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.auth-page.step-reset .auth-form-panel--reset {
+  transform: translateX(100%);
+  opacity: 1;
+  z-index: 5;
+  animation: auth-panel-reveal 0.6s;
+}
+
+@keyframes auth-panel-reveal {
+  0%,
+  49.99% {
+    opacity: 0;
+    z-index: 1;
+  }
+  50%,
+  100% {
+    opacity: 1;
+    z-index: 5;
+  }
+}
+
+.auth-side-panel {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 80px 0 0 80px;
+  transition: all 0.6s ease-in-out;
+  z-index: 1000;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  color: var(--color-text-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 0 40px;
   text-align: center;
+}
+
+.auth-page.step-reset .auth-side-panel {
+  transform: translateX(-100%);
+  border-radius: 0 80px 80px 0;
+}
+
+.auth-side-panel h2 {
+  color: var(--color-text-on-primary);
+  font-size: var(--font-size-lg);
   margin-bottom: var(--space-sm);
 }
 
-.auth-card p.auth-subtitle {
-  text-align: center;
-  color: var(--color-text-muted);
+.auth-side-panel p {
   font-size: var(--font-size-sm);
-  margin: 0 0 var(--space-sm);
-}
-
-.auth-card form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+  line-height: 1.4;
+  opacity: 0.9;
 }
 
 .auth-error {
   color: #b91c1c;
   font-size: var(--font-size-sm);
   margin: 0;
+}
+
+/* Oculta visualmente pero deja disponible para lectores de pantalla -
+   usado por el aria-live que anuncia el cambio de paso login/reset. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* El h1 del panel de reset recibe foco por script (no por click) al
+   entrar al paso obligatorio - necesita su propio indicador visible. */
+.auth-form-panel h1:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Por debajo de 640px el truco de paneles superpuestos deja de tener
+   sentido (no hay ancho para dos mitades) - se abandona el posicionamiento
+   absoluto y se apila todo en flujo normal: panel lateral arriba a modo de
+   contexto, formulario activo debajo. Sin el radio asimetrico de 80px ni
+   el slide horizontal, que solo funcionan con dos columnas. */
+@media (max-width: 640px) {
+  .auth-page {
+    padding: var(--space-md);
+  }
+
+  .auth-container {
+    width: 100%;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .auth-form-panel {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: var(--space-xl) var(--space-lg);
+    transform: none;
+    transition: none;
+  }
+
+  .auth-form-panel--login,
+  .auth-form-panel--reset {
+    display: none;
+    opacity: 1;
+  }
+
+  .auth-page:not(.step-reset) .auth-form-panel--login {
+    display: flex;
+  }
+
+  .auth-page.step-reset .auth-form-panel--reset {
+    display: flex;
+    animation: none;
+  }
+
+  .auth-side-panel {
+    position: static;
+    width: 100%;
+    height: auto;
+    order: -1;
+    border-radius: 0;
+    padding: var(--space-lg);
+  }
+
+  .auth-page.step-reset .auth-side-panel {
+    transform: none;
+    border-radius: 0;
+  }
 }

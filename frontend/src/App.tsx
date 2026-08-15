@@ -9,12 +9,12 @@ function App() {
   const [token, setToken] = useState<string | null>(() =>
     localStorage.getItem('access_token'),
   )
-  const [mustChangePassword, setMustChangePassword] = useState(false)
 
-  function handleLoginSuccess(newToken: string, mustChange: boolean) {
+  // LoginPage solo llama esto cuando el usuario ya puede entrar de verdad
+  // (login directo, o despues de completar el cambio de clave obligatorio).
+  function handleAuthenticated(newToken: string) {
     localStorage.setItem('access_token', newToken)
     setToken(newToken)
-    setMustChangePassword(mustChange)
   }
 
   function handleLogout() {
@@ -23,20 +23,13 @@ function App() {
   }
 
   if (!token) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />
+    return <LoginPage onAuthenticated={handleAuthenticated} />
   }
 
   return (
     <main className="page">
       <h1>Nexia</h1>
-      {mustChangePassword ? (
-        <p>
-          Tu cuenta tiene una contraseña temporal. (Pantalla de cambio de
-          clave: siguiente paso.)
-        </p>
-      ) : (
-        <p>Sesión iniciada correctamente. (Lista de proyectos: siguiente paso.)</p>
-      )}
+      <p>Sesión iniciada correctamente. (Lista de proyectos: siguiente paso.)</p>
       <Button variant="secondary" onClick={handleLogout}>
         Cerrar sesión
       </Button>
