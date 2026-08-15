@@ -6,5 +6,11 @@ class Settings(BaseSettings):
 
     database_url: str
 
+    # JWT: valores por defecto solo como respaldo si el .env no los trae;
+    # en la practica siempre vienen de ahi.
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+
 
 settings = Settings()
