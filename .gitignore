@@ -15,3 +15,6 @@ dist/
 
 # Sistema
 .DS_Store
+
+# Claude
+.claude

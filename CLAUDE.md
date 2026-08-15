@@ -21,6 +21,28 @@ profesional. **No construyas features completas de una sola vez.** Antes de impl
 No cambies arquitectura, no introduzcas dependencias, ni hagas cambios masivos sin avisar primero
 y explicar el porqué. No sobreingeniería: evita abstracciones que todavía no hacen falta.
 
+## Fase actual del desarrollo
+
+Estamos construyendo un primer corte vertical simple, no el sistema completo de una sola vez.
+El alcance de esta fase es únicamente:
+
+- Login con usuarios preestablecidos (el admin precrea las cuentas, sin autorregistro).
+- Dos roles activos por ahora: `admin` y `student`. Los roles `teacher` y `judge` existen en
+  la tabla `roles` pero todavía no tienen flujo funcional.
+- Los estudiantes pueden crear/editar su propio proyecto y ver los proyectos que ya existen
+  (registrados por otros usando el mismo login).
+- El objetivo de este corte es demostrar el funcionamiento del almacenamiento y visualización
+  de proyectos, nada más.
+
+**Explícitamente fuera de alcance en esta fase** (no implementar aunque el resto de este
+documento lo describa como parte del diseño — sigue siendo el diseño final del proyecto,
+solo pendiente hasta que se pida explícitamente avanzar a esa fase):
+
+- `defense_sessions`, `session_judges`
+- `evaluations`, `evaluation_criteria`, `evaluation_audit`
+- `documents`, `awards`
+- Cualquier flujo de sustentación, evaluación o jurados
+
 ## Convención de idioma
 
 **Todo identificador de código va en inglés**: nombres de tablas, columnas, endpoints, variables,
@@ -43,14 +65,16 @@ idiomas dentro del código (nunca `estado` junto a `status` en el mismo esquema)
 student) → `projects` (con `advisor_id` FK a users, `academic_year_id`, `status`,
 `publication_consent`) → `project_members` (join users–projects).
 
-**Sustentación y evaluación:** `defense_sessions` (date, time, location) ← `session_judges`
+**Sustentación y evaluación** (diseño final — fuera de alcance en la fase actual, ver
+"Fase actual del desarrollo"): `defense_sessions` (date, time, location) ← `session_judges`
 (join con users) — los jurados se asignan a la sesión, no al proyecto individual, y el proyecto
 hereda sus jurados de la sesión a la que pertenece (`projects.session_id`). `evaluation_criteria`
 cuelga de `academic_years` (los pesos cambian cada año). `evaluations` (project_id, judge_id,
 criteria_id, score, comment) con `evaluation_audit` registrando cada cambio (quién, cuándo, valor
 anterior/nuevo).
 
-**Pendientes de modelar cuando lleguemos ahí:** `documents` (archivos por proyecto), `awards`
+**Pendientes de modelar cuando lleguemos ahí** (fuera de alcance en la fase actual, ver
+"Fase actual del desarrollo"): `documents` (archivos por proyecto), `awards`
 (resultados/menciones).
 
 ## Reglas de negocio críticas
