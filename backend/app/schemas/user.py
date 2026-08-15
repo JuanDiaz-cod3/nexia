@@ -14,3 +14,15 @@ class UserOut(BaseModel):
     email: str
     account_type: str
     must_change_password: bool
+
+
+class UserBasicOut(BaseModel):
+    # Version reducida para cuando un usuario aparece DENTRO de otro recurso
+    # (ej. la lista de integrantes de un proyecto) - no tiene sentido que
+    # cualquiera que ve un proyecto sepa el email o el must_change_password
+    # de sus compañeros de equipo.
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    username: str

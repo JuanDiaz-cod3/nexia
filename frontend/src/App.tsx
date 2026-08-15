@@ -1,28 +1,45 @@
+import { useState } from 'react'
+import { LoginPage } from './pages/LoginPage'
 import { Button } from './components/Button'
-import { Card } from './components/Card'
-import { Input } from './components/Input'
 import './App.css'
 
 function App() {
+  // Se inicializa leyendo localStorage: si ya habia un token guardado de
+  // una sesion anterior, no te manda al login de nuevo al recargar.
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem('access_token'),
+  )
+  const [mustChangePassword, setMustChangePassword] = useState(false)
+
+  function handleLoginSuccess(newToken: string, mustChange: boolean) {
+    localStorage.setItem('access_token', newToken)
+    setToken(newToken)
+    setMustChangePassword(mustChange)
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('access_token')
+    setToken(null)
+  }
+
+  if (!token) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />
+  }
+
   return (
     <main className="page">
       <h1>Nexia</h1>
-      <p>Design system en construcción.</p>
-
-      <div className="preview-row">
-        <Button variant="primary">Primario</Button>
-        <Button variant="secondary">Secundario</Button>
-        <Button variant="primary" disabled>
-          Deshabilitado
-        </Button>
-      </div>
-
-      <Card className="preview-card">
-        <h2>Proyecto de ejemplo</h2>
-        <Input label="Título del proyecto" placeholder="Ej. Reciclaje escolar" />
-        <Input label="Categoría" placeholder="Ej. Ciencias ambientales" />
-        <Button variant="primary">Guardar</Button>
-      </Card>
+      {mustChangePassword ? (
+        <p>
+          Tu cuenta tiene una contraseña temporal. (Pantalla de cambio de
+          clave: siguiente paso.)
+        </p>
+      ) : (
+        <p>Sesión iniciada correctamente. (Lista de proyectos: siguiente paso.)</p>
+      )}
+      <Button variant="secondary" onClick={handleLogout}>
+        Cerrar sesión
+      </Button>
     </main>
   )
 }

@@ -12,5 +12,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
 
+    # Origen permitido para CORS: el frontend en desarrollo.
+    frontend_url: str = "http://localhost:5173"
+
 
 settings = Settings()
