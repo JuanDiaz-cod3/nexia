@@ -16,3 +16,11 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     must_change_password: bool
+
+
+class ChangePasswordRequest(BaseModel):
+    # Pedimos la clave actual aunque ya venga un token valido: es una capa
+    # extra de seguridad por si el token se filtro sin que la clave se
+    # filtrara tambien (el token expira en minutos, la clave no).
+    current_password: str
+    new_password: str

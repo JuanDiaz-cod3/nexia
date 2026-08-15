@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user
 from app.core.jwt import create_access_token
-from app.core.security import verify_password
+from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models import User
-from app.schemas.auth import LoginRequest, LoginResponse
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse
 
 router = APIRouter()
 
@@ -27,3 +28,25 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
 
     token = create_access_token(user_id=user.id)
     return LoginResponse(access_token=token, must_change_password=user.must_change_password)
+
+
+@router.post("/auth/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"detail": "Contraseña actual incorrecta", "code": "invalid_credentials"},
+        )
+
+    # current_user vino de la MISMA sesion db (FastAPI cachea Depends(get_db)
+    # dentro de un mismo request), asi que modificarlo y hacer commit() aqui
+    # si lo persiste - no hace falta un db.add() extra.
+    current_user.password_hash = hash_password(payload.new_password)
+    current_user.must_change_password = False
+    db.commit()
+
+    return {"detail": "Contraseña actualizada"}
