@@ -7,7 +7,7 @@
 .projects-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-md);
 }
 
@@ -35,6 +35,23 @@
 
 .project-form-submit {
   align-self: center;
+}
+
+.project-form-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.project-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.project-card-header h2 {
+  margin: 0;
 }
 
 .projects-list {

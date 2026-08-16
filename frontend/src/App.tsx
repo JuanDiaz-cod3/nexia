@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { LoginPage } from './pages/LoginPage'
 import { ProjectsPage } from './pages/ProjectsPage'
-import { Button } from './components/Button'
-import './App.css'
+import { AppShell } from './components/AppShell'
 
 function App() {
   // Se inicializa leyendo localStorage: si ya habia un token guardado de
@@ -28,14 +27,9 @@ function App() {
   }
 
   return (
-    <>
+    <AppShell title="Proyectos" onLogout={handleLogout}>
       <ProjectsPage token={token} />
-      <div className="page">
-        <Button variant="secondary" onClick={handleLogout}>
-          Cerrar sesión
-        </Button>
-      </div>
-    </>
+    </AppShell>
   )
 }
 

@@ -158,6 +158,11 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
           )}
         </div>
       </div>
+      {/* Decorativo (ficha de catalogo de archivo) - aria-hidden porque no
+          aporta nada al flujo de login para lectores de pantalla. */}
+      <span className="auth-archive-code" aria-hidden="true">
+        ETHERNALS · GRADO 11 · 2026
+      </span>
     </div>
   )
 }
