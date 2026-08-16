@@ -1,20 +1,25 @@
 :root {
-  /* Color institucional */
-  --color-primary: #1e3a8a;
-  --color-primary-hover: #1e40af;
-  --color-accent: #b45309;
-  --color-accent-bg: #fef3e2;
+  /* Color institucional - Instituto La Salle. Primary y Accent son
+     aproximacion visual (captura de pantalla del sitio real, no gotero
+     exacto de DevTools) - ajustar aca si se confirma el valor preciso. */
+  --color-primary: #12294b;
+  --color-primary-hover: #1a3763;
+  --color-accent: #e8a23a;
+  --color-accent-bg: #fbebd2;
+  --color-success: #3b6e4f;
 
   /* Color neutro */
-  --color-bg: #ffffff;
-  --color-bg-subtle: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-text: #1e293b;
-  --color-text-muted: #64748b;
+  --color-surface: #ffffff;
+  --color-background: #faf7f1;
+  --color-border: #e4dcc8;
+  --color-text: #1c1b18;
+  --color-text-muted: #5b584f;
   --color-text-on-primary: #ffffff;
 
   /* Tipografia */
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
   --font-size-sm: 14px;
   --font-size-base: 16px;
   --font-size-lg: 20px;
@@ -42,12 +47,13 @@ body {
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
   color: var(--color-text);
-  background: var(--color-bg-subtle);
+  background: var(--color-background);
 }
 
 h1,
 h2,
 h3 {
+  font-family: var(--font-serif);
   color: var(--color-text);
   margin: 0;
 }

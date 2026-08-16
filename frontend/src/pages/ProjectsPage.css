@@ -4,6 +4,39 @@
   padding: var(--space-xl) var(--space-lg);
 }
 
+.projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.project-form-card {
+  margin-top: var(--space-lg);
+}
+
+.project-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Input envuelve el <input> en un div.input-group que no se estira solo
+   dentro de un flex column - lo forzamos a ancho completo aqui (mismo
+   patron que .auth-form-panel .input-group en AuthLayout.css). */
+.project-form .input-group {
+  width: 100%;
+}
+
+.project-form textarea.input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.project-form-submit {
+  align-self: center;
+}
+
 .projects-list {
   display: flex;
   flex-direction: column;

@@ -34,14 +34,14 @@ El alcance de esta fase es únicamente:
 - El objetivo de este corte es demostrar el funcionamiento del almacenamiento y visualización
   de proyectos, nada más.
 
-**Explícitamente fuera de alcance en esta fase** (no implementar aunque el resto de este
-documento lo describa como parte del diseño — sigue siendo el diseño final del proyecto,
-solo pendiente hasta que se pida explícitamente avanzar a esa fase):
+**Explícitamente fuera de alcance en esta fase** (no implementar):
 
-- `defense_sessions`, `session_judges`
-- `evaluations`, `evaluation_criteria`, `evaluation_audit`
-- `documents`, `awards`
-- Cualquier flujo de sustentación, evaluación o jurados
+- `documents`, `awards` — pendientes de modelar cuando lleguemos ahí.
+- `defense_sessions`, `session_judges`, `evaluations`, `evaluation_criteria`,
+  `evaluation_audit`, y cualquier flujo de sustentación, evaluación o jurados — este bloque
+  es una posible oportunidad de ampliación a futuro, cuya viabilidad habría que evaluar por
+  separado. No forma parte del plan de Nexia tal como está; ver nota en "Modelo de datos —
+  entidades principales".
 
 ## Convención de idioma
 
@@ -65,13 +65,19 @@ idiomas dentro del código (nunca `estado` junto a `status` en el mismo esquema)
 student) → `projects` (con `advisor_id` FK a users, `academic_year_id`, `status`,
 `publication_consent`) → `project_members` (join users–projects).
 
-**Sustentación y evaluación** (diseño final — fuera de alcance en la fase actual, ver
-"Fase actual del desarrollo"): `defense_sessions` (date, time, location) ← `session_judges`
-(join con users) — los jurados se asignan a la sesión, no al proyecto individual, y el proyecto
-hereda sus jurados de la sesión a la que pertenece (`projects.session_id`). `evaluation_criteria`
-cuelga de `academic_years` (los pesos cambian cada año). `evaluations` (project_id, judge_id,
-criteria_id, score, comment) con `evaluation_audit` registrando cada cambio (quién, cuándo, valor
-anterior/nuevo).
+**Sustentación y evaluación** (ejercicio conceptual, no comprometido como parte del plan de
+Nexia — ver nota abajo): `defense_sessions` (date, time, location) ← `session_judges`
+(join con users) — los jurados se asignarían a la sesión, no al proyecto individual, y el
+proyecto heredaría sus jurados de la sesión a la que pertenece (`projects.session_id`).
+`evaluation_criteria` colgaría de `academic_years` (los pesos cambian cada año). `evaluations`
+(project_id, judge_id, criteria_id, score, comment) con `evaluation_audit` registrando cada
+cambio (quién, cuándo, valor anterior/nuevo).
+
+> Este modelo se diseñó como ejercicio conceptual para explorar cómo se vería un flujo de
+> sustentación y evaluación por jurados. No está planeado como parte de lo que se va a
+> construir en Nexia — no compromete una "fase 2". Queda documentado aquí como referencia,
+> por si en el futuro se evalúa por separado la viabilidad de ampliar el alcance en esa
+> dirección.
 
 **Pendientes de modelar cuando lleguemos ahí** (fuera de alcance en la fase actual, ver
 "Fase actual del desarrollo"): `documents` (archivos por proyecto), `awards`
@@ -110,10 +116,48 @@ no de antemano.
 
 ## Sistema de diseño
 
-Minimalista, institucional, profesional. Fondos blancos/grises claros, azul institucional + un
-solo color de acento, tipografía moderna, cards limpias, espaciado generoso. Máximo 2 colores
-simultáneos por componente. Personalización por colegio vía CSS variables / design tokens (logo,
-color primario, color de acento) — la estructura y componentes base son siempre de Nexia.
+Identidad anclada en los colores reales del Instituto La Salle (verificados por
+inspección de su sitio institucional, no inventados):
+
+- Primary (azul institucional): #12294B
+- Accent (ámbar/dorado): #E8A23A
+- Background (fondo cálido tipo papel, no blanco clínico): #FAF7F1
+- Surface (tarjetas): #FFFFFF
+- Success (estados "publicado"/validado): #3B6E4F
+- Ink (texto principal): #1C1B18
+- Ink muted (texto secundario): #5B584F
+- Border (líneas sutiles): #E4DCC8
+
+NOTA: Primary y Accent son una aproximación visual tomada de una captura de
+pantalla del sitio real, no un valor de pixel exacto — pueden ajustarse cuando
+se confirme el valor preciso con el gotero de DevTools. Por eso TODO color debe
+vivir como variable CSS en un único archivo de tokens, nunca hardcodeado en
+componentes individuales — así un ajuste futuro es un cambio en un solo lugar.
+
+Tipografía:
+- Display/títulos: Source Serif 4 (evoca peso de documento oficial — nombres de
+  proyecto, encabezados)
+- Body/UI: Inter (formularios, botones, texto funcional)
+- Utilitaria/metadatos: IBM Plex Mono (códigos de proyecto, año, categoría —
+  evoca catalogación de archivo)
+
+Elemento de firma — "el sello": un emblema circular en el color accent, con
+doble borde, que aparece únicamente sobre projects con status = "published".
+Reemplaza cualquier ícono genérico de check/palomita para ese estado. Se
+implementa cuando construyamos la vista de tarjeta de proyecto — no es
+necesario ahora.
+
+Personalización por colegio vía las mismas CSS variables (Primary, Accent,
+logo). Estos valores de La Salle son el default del colegio piloto, no un
+hardcode permanente.
+
+Antes de tomar cualquier decisión de diseño visual que no esté ya fijada arriba
+(layout de una pantalla nueva, jerarquía de una vista, espaciado, cualquier
+elección estética no cubierta explícitamente por estos tokens), consulta primero
+.claude/skills/frontend-design/SKILL.md y sigue su proceso antes de decidir. Los
+tokens de esta sección (colores, tipografías, el sello) son la restricción de
+partida, no negociable — el skill se usa para decidir todo lo que todavía no está
+definido, nunca para cambiar lo ya decidido aquí.
 
 ## Secretos y configuración
 

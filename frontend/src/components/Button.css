@@ -34,5 +34,5 @@
 }
 
 .button--secondary:hover:not(:disabled) {
-  background: var(--color-bg-subtle);
+  background: var(--color-background);
 }

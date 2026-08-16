@@ -16,8 +16,22 @@ export interface Project {
   members: ProjectMember[]
 }
 
+export interface ProjectCreateInput {
+  title: string
+  category?: string
+  summary?: string
+}
+
 export function listProjects(token: string): Promise<Project[]> {
   return apiFetch<Project[]>('/projects', {
     headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export function createProject(token: string, input: ProjectCreateInput): Promise<Project> {
+  return apiFetch<Project>('/projects', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
   })
 }
