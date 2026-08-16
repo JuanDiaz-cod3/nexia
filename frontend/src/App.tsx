@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { LoginPage } from './pages/LoginPage'
+import { ProjectsPage } from './pages/ProjectsPage'
 import { Button } from './components/Button'
 import './App.css'
 
@@ -27,13 +28,14 @@ function App() {
   }
 
   return (
-    <main className="page">
-      <h1>Nexia</h1>
-      <p>Sesión iniciada correctamente. (Lista de proyectos: siguiente paso.)</p>
-      <Button variant="secondary" onClick={handleLogout}>
-        Cerrar sesión
-      </Button>
-    </main>
+    <>
+      <ProjectsPage token={token} />
+      <div className="page">
+        <Button variant="secondary" onClick={handleLogout}>
+          Cerrar sesión
+        </Button>
+      </div>
+    </>
   )
 }
 
