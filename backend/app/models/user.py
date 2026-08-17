@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.role import Role
 
 
 class User(Base):
@@ -28,3 +29,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+    # viewonly: los roles se asignan por fuera (script de creacion de
+    # cuentas), esta relacion es solo para leer "que roles tiene este
+    # usuario" comodamente (ver is_admin en deps.py).
+    roles: Mapped[list["Role"]] = relationship(secondary="user_roles", viewonly=True)

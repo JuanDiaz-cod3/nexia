@@ -14,6 +14,7 @@ class UserOut(BaseModel):
     email: str
     account_type: str
     must_change_password: bool
+    roles: list[str]
 
 
 class UserBasicOut(BaseModel):

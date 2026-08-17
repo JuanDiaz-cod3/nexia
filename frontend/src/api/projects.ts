@@ -33,9 +33,12 @@ export interface ProjectUpdateInput {
   summary?: string | null
 }
 
-export function listProjects(token: string): Promise<Project[]> {
+// Sin token: /projects es publico (ver CLAUDE.md). Se acepta null/undefined
+// para las pantallas que se muestran sin sesion (Inicio, Proyectos) - si hay
+// token igual se manda, pero el backend no lo exige.
+export function listProjects(token?: string | null): Promise<Project[]> {
   return apiFetch<Project[]>('/projects', {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
 }
 

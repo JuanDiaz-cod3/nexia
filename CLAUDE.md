@@ -92,6 +92,10 @@ cambio (quién, cuándo, valor anterior/nuevo).
   prepara el terreno para multi-tenant sin implementarlo todavía.
 - Cualquier integrante de un proyecto tiene los mismos permisos sobre archivos y edición — no hay
   un "dueño" único del proyecto.
+- El rol `admin` tiene control total sobre el repositorio de proyectos del colegio: puede editar y
+  borrar cualquier proyecto, sea integrante o no (`PATCH`/`DELETE /projects/{id}` lo permiten via
+  `is_admin()` en `deps.py`, ademas de la regla normal de "cualquier integrante puede"). No incluye
+  gestión de usuarios todavía — queda fuera de alcance hasta que se necesite.
 - Un profesor solo ve/edita proyectos donde `advisor_id` = su propio usuario (no existe tabla de
   asignación profesor-grupo separada — se descartó por redundante).
 - Evaluaciones **editables mientras `projects.status` no sea `published`**; después quedan
@@ -100,8 +104,11 @@ cambio (quién, cuándo, valor anterior/nuevo).
   cambio obligatorio en el primer login.
 - Jurados externos: `account_type = 'external'`, `username` = su correo completo (no tienen
   dominio institucional).
-- Visibilidad pública de datos de un estudiante requiere `publication_consent = true`
-  (Ley 1581 de 2013, datos de menores).
+- Los proyectos son públicos desde que existen: `GET /projects` (listado y detalle) no requiere
+  login — es el archivo abierto de investigación del colegio, pensado para consultarse sin cuenta.
+  Crear/editar/borrar el propio proyecto sigue requiriendo autenticación. `publication_consent`
+  queda como columna en `projects` sin uso por ahora (decisión consciente: ya no gatea
+  visibilidad; se retira el campo en una migración aparte si se confirma que no hace falta).
 
 ## Ciclo de vida de un proyecto (`projects.status`)
 

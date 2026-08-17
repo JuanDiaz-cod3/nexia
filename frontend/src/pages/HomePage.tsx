@@ -5,9 +5,37 @@ import { ApiError } from '../api/client'
 import './HomePage.css'
 
 interface HomePageProps {
-  token: string
+  token: string | null
   onExploreProjects: () => void
 }
+
+interface Quote {
+  text: string
+  author: string
+}
+
+// Contenido fijo de la pagina, no datos - vive aca en vez de venir del
+// backend porque no depende de nada que cambie por usuario ni por proyecto.
+const QUOTES: Quote[] = [
+  {
+    text: 'Investigar es ver lo que todo el mundo ha visto, y pensar lo que nadie más ha pensado.',
+    author: 'Albert Szent-Györgyi',
+  },
+  {
+    text: 'Solamente los que arriesgan llegar demasiado lejos son los que descubren hasta dónde pueden llegar.',
+    author: 'T. S. Eliot',
+  },
+  {
+    text: 'La investigación se asemeja a los largos meses de gestación, y la solución del problema, al día del nacimiento. Investigar un problema es resolverlo.',
+    author: 'Mao Tse Tung',
+  },
+  {
+    text: 'El análisis lógico es la primera operación que debiera emprenderse al comprobar las hipótesis científicas, sean fácticas o no.',
+    author: 'Mario Bunge',
+  },
+]
+
+const QUOTE_ROTATE_MS = 10_000
 
 // Estilo "vidrio" (ver index.css, tokens --glass-*): esta es la primera
 // pantalla que lo adopta. Estudiantes activos no tiene de donde salir
@@ -17,6 +45,17 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [quoteIndex, setQuoteIndex] = useState(0)
+
+  // Sin llamada al servidor: avanza un indice sobre el array local cada
+  // QUOTE_ROTATE_MS mientras Inicio este montado. El timer vive y muere en
+  // el navegador de quien mira la pagina, no le cuesta nada al backend.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setQuoteIndex((current) => (current + 1) % QUOTES.length)
+    }, QUOTE_ROTATE_MS)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -132,11 +171,16 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
         </div>
 
         <div className="home-quote-banner">
-          <p>
-            <span className="home-quote-mark">"</span>Investigar es ver lo que todo el mundo ha
-            visto, y pensar lo que nadie más ha pensado.
-          </p>
-          <span className="home-quote-author">— Albert Szent-Györgyi</span>
+          {/* key={quoteIndex}: al cambiar, React desmonta y vuelve a montar
+              este bloque, lo que retiene la animacion de fundido de
+              HomePage.css en cada frase nueva sin manejar estado a mano. */}
+          <div className="home-quote-content" key={quoteIndex}>
+            <span className="home-quote-mark" aria-hidden="true">
+              "
+            </span>
+            <p>{QUOTES[quoteIndex].text}</p>
+            <span className="home-quote-author">— {QUOTES[quoteIndex].author}</span>
+          </div>
         </div>
       </div>
     </div>

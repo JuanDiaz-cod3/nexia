@@ -200,6 +200,10 @@
   margin: 0;
 }
 
+/* Centrado en columna unica, pensado para UNA frase a la vez (con rotacion
+   automatica, ver HomePage.tsx) en vez del layout anterior a dos puntas
+   (cita a la izquierda / autor a la derecha), que quedaba desbalanceado
+   con citas cortas y se rompia con las mas largas. */
 .home-quote-banner {
   grid-column: 1 / -1;
   background: var(--glass-primary-strong);
@@ -207,33 +211,63 @@
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 18px;
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-lg);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
+  justify-content: center;
   color: #ffffff;
-  flex-wrap: wrap;
+  overflow: hidden;
+  max-width: 620px;
+  margin: 0 auto;
 }
 
-.home-quote-banner p {
-  font-family: var(--font-serif);
-  font-size: 15px;
-  line-height: 1.5;
-  max-width: 480px;
-  margin: 0;
+.home-quote-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 560px;
+  text-align: center;
+  animation: home-quote-fade 0.6s ease;
 }
 
 .home-quote-mark {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1;
   color: var(--color-accent);
-  font-size: 24px;
+}
+
+.home-quote-content p {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .home-quote-author {
   font-family: var(--font-mono);
   font-size: 11px;
+  letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.7);
-  white-space: nowrap;
+  margin-top: var(--space-xs);
+}
+
+@keyframes home-quote-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-quote-content {
+    animation: none;
+  }
 }
 
 @media (max-width: 900px) {

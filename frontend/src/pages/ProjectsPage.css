@@ -47,3 +47,49 @@
 .projects-error {
   color: #b91c1c;
 }
+
+/* Solo visible para admin (ver ProjectsPage.tsx) - control total sobre el
+   repositorio de proyectos, no solo el propio. */
+.project-admin-controls {
+  display: flex;
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-xs);
+}
+
+.project-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  text-align: left;
+}
+
+.project-edit-form .input-group {
+  width: 100%;
+}
+
+.project-edit-form textarea.input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.project-edit-form-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.project-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  width: 100%;
+}
+
+.project-delete-confirm p {
+  margin: 0;
+}

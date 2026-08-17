@@ -1,0 +1,129 @@
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Mismo grano de papel que AuthLayout.css (.auth-page::before) - continuidad
+   de textura entre la puerta publica y el login, no una superficie nueva. */
+.landing-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.landing-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+  animation: landing-rise 0.9s ease-out both;
+}
+
+.landing-mark {
+  width: min(560px, 82vw);
+  height: auto;
+}
+
+/* Sin rect de fondo propio en el SVG (ver LandingPage.tsx) - el lienzo
+   queda transparente, asi que se funde con .landing-page sin ninguna caja
+   ni borde visible detras del sello, sin importar el color de fondo exacto.
+   El sello y el wordmark si mantienen los colores institucionales de
+   siempre (accent/primary) - lo que se integra con la pagina es el fondo
+   del grafico, no la tinta de la marca. */
+.landing-mark-ring--accent {
+  stroke: var(--color-accent);
+}
+
+.landing-mark-ring--primary {
+  stroke: var(--color-primary);
+}
+
+.landing-mark-ink {
+  fill: var(--color-primary);
+}
+
+.landing-mark-seal,
+.landing-mark-wordmark {
+  font-family: var(--font-serif);
+  font-weight: 700;
+}
+
+.landing-mark-wordmark {
+  letter-spacing: 2px;
+}
+
+.landing-mark-label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+.landing-tagline {
+  margin: calc(-1 * var(--space-md)) 0 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.landing-enter {
+  padding: var(--space-sm) var(--space-xl);
+  font-size: var(--font-size-lg);
+}
+
+.landing-archive-code {
+  position: fixed;
+  z-index: 1;
+  right: var(--space-lg);
+  bottom: var(--space-lg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-content {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-content {
+    padding: var(--space-lg);
+    gap: var(--space-md);
+  }
+
+  .landing-tagline {
+    font-size: var(--font-size-base);
+  }
+
+  .landing-archive-code {
+    display: none;
+  }
+}

@@ -4,7 +4,7 @@
 > registro histórico exhaustivo (para eso está `git log`), sino una foto de "dónde estamos"
 > y "qué sigue" para retomar rápido.
 
-Última actualización: 2026-08-17 (sesión 2)
+Última actualización: 2026-08-17 (sesión 4)
 
 ## Dónde estamos
 
@@ -83,6 +83,54 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   vía Chrome DevTools (access token corrupto → `401` → refresh silencioso → reintento
   exitoso, confirmado en la pestaña Network; ambos tokens corruptos → logout limpio a la
   pantalla de login, `localStorage` queda vacío).
+- **Testing backend arrancado (pytest + Postgres real vía Docker):** `docker-compose.test.yml`
+  levanta una Postgres 16 efímera (puerto `5433`, datos en `tmpfs`, sin volumen — se
+  descarta al bajar el contenedor) para no correr tests contra el Supabase real de
+  `.env`. `backend/conftest.py` fija `DATABASE_URL` a esa DB *antes* de importar `app`
+  (el `Settings()` se instancia al importar `app.core.config`, así que hacerlo después
+  sería tarde), crea el esquema con `Base.metadata.create_all()` una vez por sesión
+  (se evaluó correr `alembic upgrade head` en su lugar; se descartó por ahora — el
+  mínimo razonable para este corte, se reconsidera si migraciones y modelos llegan a
+  desincronizarse), y aísla cada test en una transacción con rollback automático al
+  final. El fixture de sesión usa `join_transaction_mode="create_savepoint"`: sin esto,
+  un test que dispara un `IntegrityError` a propósito (como los de abajo) deja la
+  transacción externa deasociada y el rollback del teardown tira un `SAWarning`.
+  Dos archivos de test: `test_project_membership.py` prueba el `UNIQUE(user_id,
+  academic_year_id)` de `project_members` directo a nivel de modelo/DB (caso que
+  rompe y caso que no rompe), y `test_projects_api.py` prueba el mismo constraint
+  pero a través de `POST /api/v1/projects` de punta a punta, confirmando que el
+  `IntegrityError` se traduce en `409` con `code: "already_in_project"`. Todavía no
+  hay tests de auth (login/refresh) ni de frontend — decisión consciente de parar acá
+  por ahora y seguir sumando cobertura en próximas sesiones.
+- **La app ahora tiene un frente público de verdad:** hasta esta sesión, `App.tsx` mandaba
+  a cualquiera sin token directo al login — ni Inicio ni Proyectos eran visitables sin
+  cuenta. Cambio de regla de negocio (decisión explícita, no técnica): los proyectos son
+  públicos desde que existen, no hace falta `publication_consent` ni login para verlos.
+  `GET /projects` y `GET /projects/{id}` ya no requieren autenticación (sin filtro por
+  `school_id` — un solo colegio en este piloto, no hace falta todavía). `publication_consent`
+  sigue en la tabla `projects`, sin uso.
+- **`LandingPage` nueva:** puerta pública del sitio, sello + wordmark INNOVALAB con los
+  colores institucionales, SVG sin `rect` de fondo propio (queda transparente, se funde
+  con la página sin caja visible), botón "Entrar". `App.tsx` gana un estado `entered`
+  (persistido en `localStorage` igual que el token — si no, un refresh te mandaba de
+  vuelta a la landing aunque la sesión siguiera activa) que separa la landing del resto.
+  Única pantalla que sigue exigiendo login: "Mi Proyecto" — si no hay token, clickearla
+  muestra `LoginPage` completo en vez de esa pantalla, y al autenticarse aterriza ahí
+  directo (`loginTarget` en `App.tsx`). `AppShell` oculta "Cerrar sesión" cuando no hay
+  sesión iniciada.
+- **Rol `admin` con control total sobre el repositorio:** puede editar y borrar
+  cualquier proyecto, sea integrante o no (antes solo podían los integrantes). `User.roles`
+  (relación nueva hacia `Role` vía `user_roles`), `deps.is_admin(user)` — función simple,
+  no un `Depends`, porque `PATCH`/`DELETE /projects/{id}` la usan como OR sobre el chequeo
+  de membresía existente, no como gate duro. `GET /users/me` expone `roles: string[]`.
+  En el frontend, `ProjectsPage` (la pantalla pública de solo-lectura) muestra
+  "Editar"/"Borrar" por tarjeta si el usuario logueado es admin, reutilizando el patrón de
+  formulario inline de `MyProjectPage`. Gestión de usuarios queda fuera de alcance por
+  ahora (a pedido explícito). 3 tests nuevos en `test_projects_admin.py`.
+- **Frases rotativas en Inicio:** el banner de cita (antes una sola, fija, con layout a
+  dos puntas que se veía desbalanceado) ahora rota entre 4 frases cada 10s con fundido
+  suave, sin ningún costo de servidor (array estático + `setInterval` en el navegador).
+  Layout rediseñado: columna centrada, caja angosta (no una barra azul de ancho completo).
 
 ## Qué falta — dentro del alcance de este corte
 
@@ -93,8 +141,9 @@ jurados, documentos y premios queda fuera de este corte a propósito.
 - [x] `DELETE /projects/{id}` — implementado, cualquier integrante puede borrar.
 - [x] Expiración del access token + refresh token — implementados y verificados en vivo
   (ver arriba).
-- [ ] Testing: no hay ningún test todavía, ni backend (pytest) ni frontend. Decidir el
-  mínimo razonable para este corte antes de seguir agregando features.
+- [ ] Testing: arrancado en backend (ver arriba — Docker + pytest, 3 tests sobre el
+  constraint de un-proyecto-por-año). Falta: tests de auth (login/refresh), del resto
+  de endpoints de `projects`, y testing de frontend (todavía sin Vitest instalado).
 - [ ] CI: no hay pipeline configurado (ni lint ni tests corren automáticamente).
 - [ ] Deploy real: nada desplegado aún. Vercel/Render/Supabase están decididos como plan
   en `CLAUDE.md` pero no ejecutados — sigue corriendo todo en local.

@@ -7,6 +7,7 @@ export type AppPage = 'home' | 'projects' | 'my-project'
 interface AppShellProps {
   title: string
   activePage: AppPage
+  isAuthenticated: boolean
   onNavigate: (page: AppPage) => void
   onLogout: () => void
   children: ReactNode
@@ -16,7 +17,14 @@ interface AppShellProps {
 // pantalla que mostrar todavia. Se van habilitando uno por uno (agregando
 // su propio manejador + contenido) a medida que se construyen, en vez de
 // levantar toda la navegacion de una sola vez.
-export function AppShell({ title, activePage, onNavigate, onLogout, children }: AppShellProps) {
+export function AppShell({
+  title,
+  activePage,
+  isAuthenticated,
+  onNavigate,
+  onLogout,
+  children,
+}: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -75,9 +83,11 @@ export function AppShell({ title, activePage, onNavigate, onLogout, children }: 
       <div className="app-content">
         <header className="app-topbar">
           <h1>{title}</h1>
-          <Button variant="secondary" onClick={onLogout}>
-            Cerrar sesión
-          </Button>
+          {isAuthenticated && (
+            <Button variant="secondary" onClick={onLogout}>
+              Cerrar sesión
+            </Button>
+          )}
         </header>
         <main className="app-main">{children}</main>
       </div>

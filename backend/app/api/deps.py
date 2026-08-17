@@ -51,3 +51,11 @@ def require_password_changed(user: User = Depends(get_current_user)) -> User:
             },
         )
     return user
+
+
+# Funcion simple, no una dependencia: los endpoints de projects la usan como
+# un OR sobre el chequeo de membresia ("integrante del proyecto O admin"),
+# no como un gate duro que bloquee todo el endpoint - por eso no es un
+# Depends() como las de arriba.
+def is_admin(user: User) -> bool:
+    return any(role.name == "admin" for role in user.roles)

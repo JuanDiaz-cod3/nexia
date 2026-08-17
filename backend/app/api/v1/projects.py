@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_password_changed
+from app.api.deps import is_admin, require_password_changed
 from app.db.session import get_db
 from app.models import AcademicYear, Project, ProjectMember, User
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
@@ -31,27 +31,22 @@ def _get_current_academic_year(db: Session, school_id: int) -> AcademicYear:
     return year
 
 
+# Publicos, sin autenticacion: el archivo de proyectos esta abierto a todo
+# el mundo por decision de producto (ver CLAUDE.md - "Reglas de negocio
+# criticas"). Sin filtro por school_id: en este piloto de un solo colegio no
+# hace falta - cuando exista mas de un colegio, este endpoint va a necesitar
+# saber para cual es la consulta (dominio/subdominio probablemente, no un
+# query param abierto), pero eso es multi-tenant real y todavia no llegamos
+# ahi.
 @router.get("/projects", response_model=list[ProjectOut])
-def list_projects(
-    current_user: User = Depends(require_password_changed),
-    db: Session = Depends(get_db),
-) -> list[Project]:
-    return (
-        db.query(Project)
-        .filter_by(school_id=current_user.school_id)
-        .order_by(Project.created_at.desc())
-        .all()
-    )
+def list_projects(db: Session = Depends(get_db)) -> list[Project]:
+    return db.query(Project).order_by(Project.created_at.desc()).all()
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOut)
-def get_project(
-    project_id: int,
-    current_user: User = Depends(require_password_changed),
-    db: Session = Depends(get_db),
-) -> Project:
+def get_project(project_id: int, db: Session = Depends(get_db)) -> Project:
     project = db.get(Project, project_id)
-    if project is None or project.school_id != current_user.school_id:
+    if project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"detail": "Proyecto no encontrado", "code": "not_found"},
@@ -118,8 +113,10 @@ def update_project(
         )
 
     # Regla de negocio: cualquier integrante puede editar, no hay "dueño".
+    # El admin tambien puede editar cualquier proyecto del colegio, sea
+    # integrante o no - control total sobre el repositorio (ver CLAUDE.md).
     is_member = any(member.id == current_user.id for member in project.members)
-    if not is_member:
+    if not is_member and not is_admin(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"detail": "No eres integrante de este proyecto", "code": "not_a_member"},
@@ -150,9 +147,9 @@ def delete_project(
         )
 
     # Mismo criterio que en PATCH: cualquier integrante puede borrar, no hay
-    # "dueño" unico del proyecto.
+    # "dueño" unico del proyecto - y el admin puede borrar cualquiera.
     is_member = any(member.id == current_user.id for member in project.members)
-    if not is_member:
+    if not is_member and not is_admin(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"detail": "No eres integrante de este proyecto", "code": "not_a_member"},

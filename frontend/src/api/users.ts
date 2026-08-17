@@ -7,6 +7,7 @@ export interface CurrentUser {
   email: string
   account_type: string
   must_change_password: boolean
+  roles: string[]
 }
 
 export function getCurrentUser(token: string): Promise<CurrentUser> {
