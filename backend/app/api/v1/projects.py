@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.api.deps import is_admin, require_password_changed
 from app.db.session import get_db
@@ -38,14 +38,34 @@ def _get_current_academic_year(db: Session, school_id: int) -> AcademicYear:
 # saber para cual es la consulta (dominio/subdominio probablemente, no un
 # query param abierto), pero eso es multi-tenant real y todavia no llegamos
 # ahi.
+#
+# selectinload(members) + joinedload(advisor): sin esto, ProjectOut dispara
+# lazy loading al serializar - una consulta SQL aparte por CADA proyecto
+# para traer sus integrantes (y otra para el asesor), o sea N+1 consultas
+# para N proyectos. Con esto queda en un numero fijo de consultas sin
+# importar cuantos proyectos haya (medido: bajo de 3 a 2 consultas con solo
+# 2 proyectos - la diferencia crece con el archivo).
+_PROJECT_LOAD_OPTIONS = (selectinload(Project.members), joinedload(Project.advisor))
+
+
 @router.get("/projects", response_model=list[ProjectOut])
 def list_projects(db: Session = Depends(get_db)) -> list[Project]:
-    return db.query(Project).order_by(Project.created_at.desc()).all()
+    return (
+        db.query(Project)
+        .options(*_PROJECT_LOAD_OPTIONS)
+        .order_by(Project.created_at.desc())
+        .all()
+    )
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOut)
 def get_project(project_id: int, db: Session = Depends(get_db)) -> Project:
-    project = db.get(Project, project_id)
+    project = (
+        db.query(Project)
+        .options(*_PROJECT_LOAD_OPTIONS)
+        .filter(Project.id == project_id)
+        .first()
+    )
     if project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -131,6 +131,14 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   dos puntas que se veía desbalanceado) ahora rota entre 4 frases cada 10s con fundido
   suave, sin ningún costo de servidor (array estático + `setInterval` en el navegador).
   Layout rediseñado: columna centrada, caja angosta (no una barra azul de ancho completo).
+- **Fix de N+1 en `list_projects`/`get_project`:** `ProjectOut` serializa `members` y
+  `advisor` de cada proyecto, y sin eager loading eso disparaba una consulta SQL aparte
+  por proyecto (lazy loading default de SQLAlchemy) — confirmado empíricamente: 3
+  consultas para 2 proyectos, habría sido ~41-81 con 40. Con `.options(selectinload
+  (Project.members), joinedload(Project.advisor))` queda fijo en 2 consultas sin
+  importar cuántos proyectos haya. El tiempo de reloj en local sigue siendo notorio
+  (~100-150ms por consulta, viaje de red hasta el Supabase en us-east-2) — eso no lo
+  arregla el código, se resuelve cuando el backend quede desplegado cerca de la DB.
 
 ## Qué falta — dentro del alcance de este corte
 
