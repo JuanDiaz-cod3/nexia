@@ -1,0 +1,257 @@
+.home-page {
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
+}
+
+/* Superficie de vidrio compartida por todos los paneles de esta pantalla.
+   No vive en Card.css a proposito: Card sigue siendo la superficie solida
+   que usa ProjectsPage hasta que se decida migrarla tambien. */
+.glass-panel {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--glass-shadow);
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.home-main {
+  min-width: 0;
+}
+
+.home-hero {
+  background: linear-gradient(135deg, var(--glass-primary-strong), rgba(34, 64, 107, 0.6));
+  color: #ffffff;
+  padding: var(--space-xl);
+  margin-bottom: var(--space-lg);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.home-hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.home-hero-title {
+  font-size: 48px;
+  margin: var(--space-sm) 0 var(--space-sm);
+  color: #ffffff;
+}
+
+.home-hero-accent {
+  color: var(--color-accent);
+}
+
+.home-hero-text {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 460px;
+  line-height: 1.6;
+  margin: 0 0 var(--space-lg);
+}
+
+.home-error {
+  color: #b3261e;
+  margin: 0 0 var(--space-md);
+}
+
+.home-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.home-stat-card {
+  padding: var(--space-md) var(--space-lg);
+  position: relative;
+}
+
+.home-stat-num {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.home-stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.home-stat-card--placeholder .home-stat-num,
+.home-stat-card--placeholder .home-stat-label {
+  opacity: 0.6;
+}
+
+.home-preview-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: var(--color-accent-bg);
+  border-radius: 100px;
+  padding: 2px 8px;
+}
+
+.home-stat-card--placeholder .home-preview-tag {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+}
+
+.home-section-title {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  margin: 0 0 var(--space-md);
+}
+
+.home-empty {
+  padding: var(--space-lg);
+  color: var(--color-text-muted);
+}
+
+.home-projects-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.home-project-card {
+  padding: var(--space-md);
+  position: relative;
+}
+
+.home-project-card h3 {
+  font-size: var(--font-size-base);
+  line-height: 1.35;
+  margin: var(--space-xs) 0 var(--space-xs);
+}
+
+.home-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: #8a5c14;
+  background: var(--color-accent-bg);
+  border-radius: 100px;
+  padding: 3px 9px;
+}
+
+.home-project-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* "El sello" - elemento de firma del sistema de disenio, definido en
+   CLAUDE.md: solo aparece sobre proyectos con status = published. */
+.home-seal {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(232, 162, 58, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.home-side-panel {
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.home-side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.home-side-panel h4 {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.home-side-placeholder {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.home-quote-banner {
+  grid-column: 1 / -1;
+  background: var(--glass-primary-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  color: #ffffff;
+  flex-wrap: wrap;
+}
+
+.home-quote-banner p {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: 480px;
+  margin: 0;
+}
+
+.home-quote-mark {
+  color: var(--color-accent);
+  font-size: 24px;
+}
+
+.home-quote-author {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-page {
+    padding: var(--space-md);
+  }
+
+  .home-hero-title {
+    font-size: 36px;
+  }
+
+  .home-stats-row {
+    grid-template-columns: 1fr;
+  }
+}

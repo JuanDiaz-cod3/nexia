@@ -29,3 +29,37 @@
   background: var(--color-background);
   cursor: not-allowed;
 }
+
+.input-password-wrap {
+  position: relative;
+}
+
+.input--has-toggle {
+  width: 100%;
+  padding-right: 64px;
+}
+
+.input-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-sm);
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-xs);
+}
+
+.input-password-toggle:hover {
+  color: var(--color-text);
+}
+
+.input-password-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}

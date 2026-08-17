@@ -18,3 +18,8 @@ dist/
 
 # Claude
 .claude
+
+# Estado transitorio del skill impeccable (pid/puerto del live-server local,
+# no algo que tenga sentido versionar) - la critica/design.json en
+# .impeccable/ si se versiona, esto no.
+**/.impeccable/live/

@@ -1,8 +1,9 @@
-# Nexia — Contexto del proyecto
+# InnovaLab — Contexto del proyecto
 
 Plataforma web para colegios que gestiona el ciclo de vida completo de proyectos de investigación
 de grado 11: registro, revisión, sustentación, evaluación por jurados, publicación de resultados
-y archivo histórico. Piloto para un colegio de la comunidad La Salle, diseñado desde el día uno
+y archivo histórico. Piloto para el Instituto La Salle - Bilingual School Barranquilla, diseñado
+desde el día uno
 para poder convertirse en un producto SaaS multi-colegio más adelante (sin implementar
 multi-tenancy completo todavía).
 
@@ -40,7 +41,7 @@ El alcance de esta fase es únicamente:
 - `defense_sessions`, `session_judges`, `evaluations`, `evaluation_criteria`,
   `evaluation_audit`, y cualquier flujo de sustentación, evaluación o jurados — este bloque
   es una posible oportunidad de ampliación a futuro, cuya viabilidad habría que evaluar por
-  separado. No forma parte del plan de Nexia tal como está; ver nota en "Modelo de datos —
+  separado. No forma parte del plan de InnovaLab tal como está; ver nota en "Modelo de datos —
   entidades principales".
 
 ## Convención de idioma
@@ -66,7 +67,7 @@ student) → `projects` (con `advisor_id` FK a users, `academic_year_id`, `statu
 `publication_consent`) → `project_members` (join users–projects).
 
 **Sustentación y evaluación** (ejercicio conceptual, no comprometido como parte del plan de
-Nexia — ver nota abajo): `defense_sessions` (date, time, location) ← `session_judges`
+InnovaLab — ver nota abajo): `defense_sessions` (date, time, location) ← `session_judges`
 (join con users) — los jurados se asignarían a la sesión, no al proyecto individual, y el
 proyecto heredaría sus jurados de la sesión a la que pertenece (`projects.session_id`).
 `evaluation_criteria` colgaría de `academic_years` (los pesos cambian cada año). `evaluations`
@@ -75,7 +76,7 @@ cambio (quién, cuándo, valor anterior/nuevo).
 
 > Este modelo se diseñó como ejercicio conceptual para explorar cómo se vería un flujo de
 > sustentación y evaluación por jurados. No está planeado como parte de lo que se va a
-> construir en Nexia — no compromete una "fase 2". Queda documentado aquí como referencia,
+> construir en InnovaLab — no compromete una "fase 2". Queda documentado aquí como referencia,
 > por si en el futuro se evalúa por separado la viabilidad de ampliar el alcance en esa
 > dirección.
 
@@ -116,8 +117,8 @@ no de antemano.
 
 ## Sistema de diseño
 
-Identidad anclada en los colores reales del Instituto La Salle (verificados por
-inspección de su sitio institucional, no inventados):
+Identidad anclada en los colores reales del Instituto La Salle - Bilingual School Barranquilla
+(verificados por inspección de su sitio institucional, no inventados):
 
 - Primary (azul institucional): #12294B
 - Accent (ámbar/dorado): #E8A23A
@@ -148,8 +149,8 @@ implementa cuando construyamos la vista de tarjeta de proyecto — no es
 necesario ahora.
 
 Personalización por colegio vía las mismas CSS variables (Primary, Accent,
-logo). Estos valores de La Salle son el default del colegio piloto, no un
-hardcode permanente.
+logo). Estos valores del Instituto La Salle - Bilingual School Barranquilla son el default del
+colegio piloto, no un hardcode permanente.
 
 Antes de tomar cualquier decisión de diseño visual que no esté ya fijada arriba
 (layout de una pantalla nueva, jerarquía de una vista, espaciado, cualquier

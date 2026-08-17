@@ -37,7 +37,7 @@ needed.
 
 ## Operating Context
 
-- Pilot: a single La Salle community school (Colombia).
+- Pilot: Instituto La Salle - Bilingual School Barranquilla (Colombia).
 - Academic cycle: grade-11 capstone projects, one per student per academic year.
 - Admin bulk-creates accounts with a temporary password; first login forces a password change.
 - External judges: `account_type = external`, username is their full email (no institutional

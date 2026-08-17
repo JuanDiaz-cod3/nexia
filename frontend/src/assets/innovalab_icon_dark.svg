@@ -1,0 +1,9 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600&amp;display=swap');
+    .mono { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; }
+  </style>
+  <circle cx="120" cy="120" r="85" fill="none" stroke="#E8A23A" stroke-width="20"/>
+  <circle cx="120" cy="120" r="72" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity="0.85"/>
+  <text x="120" y="120" text-anchor="middle" dominant-baseline="middle" class="mono" font-size="36" fill="#FFFFFF">IL</text>
+</svg>

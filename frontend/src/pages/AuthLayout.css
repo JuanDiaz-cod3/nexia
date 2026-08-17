@@ -1,9 +1,16 @@
 /*
   Se conserva la tecnica de animacion (paneles superpuestos + panel
-  lateral deslizante); los colores/tipografia usan los design tokens
-  definidos en index.css, no valores propios. El fondo es papel con
-  grano sutil (ver .auth-page::before) - se probo un tratamiento
-  "liquid glass" y se descarto por generico, ver historial.
+  lateral deslizante) y el fondo de papel con grano (ver .auth-page::before)
+  - eso fue lo que salvo la identidad de "archivo" cuando se descarto un
+  primer intento de liquid glass por generico (ver historial de
+  AuthLayout.css). Una critica de /impeccable marco P0 que el grano no
+  sobrevivia al blur de los paneles (--glass-blur, 20px) y quedaba plano.
+  Se probo pintar el grano directo en los paneles con background-blend-
+  mode: overlay para que "sobreviviera" - se descarto de nuevo, esta vez
+  por verse sucio/con ruido en vez de papel (feedback directo, no una
+  opinion propia). Los paneles quedan de vidrio liso (tinte translucido
+  plano, sin textura); el grano solo vive en .auth-page::before, sutil,
+  en el fondo general - no se persigue mas la fusion vidrio+grano.
 */
 .auth-page {
   min-height: 100vh;
@@ -44,10 +51,9 @@
 }
 
 .auth-container {
-  background-color: var(--color-surface);
   border-radius: 24px;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 20px 48px color-mix(in srgb, var(--color-primary) 16%, transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 48px rgba(18, 41, 75, 0.18), var(--glass-shadow);
   position: relative;
   overflow: hidden;
   z-index: 1;
@@ -68,14 +74,42 @@
   justify-content: center;
   gap: var(--space-sm);
   padding: 0 48px;
-  background-color: var(--color-surface);
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
+}
+
+/* Logo horizontal (icono + wordmark, viewBox 640x160 = ratio 4:1). Ancho
+   acotado para que no compita con el h1 - se repite en ambos paneles del
+   formulario (login/reset) porque cada uno viaja como bloque independiente
+   durante la transicion (ver comentario de arriba). */
+.auth-brand-logo {
+  width: 100%;
+  max-width: 190px;
+  height: auto;
+  margin-bottom: var(--space-md);
+}
+
+.auth-form-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+  text-align: center;
 }
 
 /* Input envuelve el <input> en un div.input-group que no se estira solo
    bajo align-items: center - lo forzamos a ancho completo aqui. */
 .auth-form-panel .input-group {
   width: 100%;
+}
+
+/* Los inputs solidos de Input.css desentonan sobre un panel de vidrio -
+   variante translucida solo para este contexto, sin tocar el componente
+   compartido (ProjectsPage sigue usando el input solido normal). */
+.auth-form-panel .input {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(18, 41, 75, 0.14);
 }
 
 .auth-form-panel--login {
@@ -125,7 +159,10 @@
   border-radius: 80px 0 0 80px;
   transition: all 0.6s ease-in-out;
   z-index: 1000;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  background: linear-gradient(135deg, var(--glass-primary-strong), rgba(34, 64, 107, 0.88));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
   color: var(--color-text-on-primary);
   display: flex;
   align-items: center;
@@ -140,6 +177,14 @@
   border-radius: 0 80px 80px 0;
 }
 
+/* Icono circular (viewBox 240x240, cuadrado) - variante clara pensada para
+   el fondo navy translucido de este panel. */
+.auth-side-icon {
+  width: 84px;
+  height: 84px;
+  margin-bottom: var(--space-md);
+}
+
 .auth-side-panel h2 {
   color: var(--color-text-on-primary);
   font-size: var(--font-size-lg);
@@ -149,7 +194,6 @@
 .auth-side-panel p {
   font-size: var(--font-size-sm);
   line-height: 1.4;
-  opacity: 0.9;
 }
 
 .auth-error {
@@ -220,12 +264,18 @@
     animation: none;
   }
 
+  /* Sin order: -1 a proposito (a diferencia de antes): el formulario debe
+     quedar primero en el flujo movil - ya trae su propio logo arriba, asi
+     que la marca no se pierde. El panel de bienvenida pasa a ser contexto
+     despues del CTA, no un bloque decorativo que hay que scrollear para
+     llegar a "Iniciar sesion" (hallazgo P1 de /impeccable critique). */
   .auth-side-panel {
     position: static;
     width: 100%;
     height: auto;
-    order: -1;
     border-radius: 0;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
     padding: var(--space-lg);
   }
 

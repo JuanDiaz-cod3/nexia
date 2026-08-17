@@ -1,9 +1,9 @@
-# Nexia
+# InnovaLab
 
 Plataforma web para colegios que gestiona el ciclo de vida completo de proyectos de investigación
 de grado 11: registro, revisión, sustentación, evaluación por jurados, publicación de resultados y
-archivo histórico. Piloto para un colegio de la comunidad La Salle, pensada desde el inicio para
-poder evolucionar a un producto SaaS multi-colegio.
+archivo histórico. Piloto para el Instituto La Salle - Bilingual School Barranquilla, pensada
+desde el inicio para poder evolucionar a un producto SaaS multi-colegio.
 
 ## Stack
 

@@ -1,5 +1,5 @@
 ---
-name: Nexia
+name: InnovaLab
 description: Plataforma institucional para gestionar el ciclo de vida de proyectos de grado 11
 colors:
   primary: "#1e3a8a"
@@ -66,13 +66,13 @@ components:
     padding: "8px 16px"
 ---
 
-# Design System: Nexia
+# Design System: InnovaLab
 
 ## Overview
 
 **Creative North Star: "The Academic Archive"**
 
-Nexia reads like the registrar's office of a well-run school: formal enough to hold institutional
+InnovaLab reads like the registrar's office of a well-run school: formal enough to hold institutional
 weight — grades, evaluations, minors' data — but never cold enough to intimidate the 16-17 year
 old students who log in to manage their own capstone project. Every surface is built from a small,
 disciplined vocabulary (one primary color, one reserved accent, one type family, one radius) so
@@ -130,7 +130,7 @@ system feeling like consistent institutional paperwork, not a marketing site bor
 face.
 
 ### Hierarchy
-- **Display** (700, 28px, 1.2): page-level headings ("Nexia", "Iniciar sesión"). Token exists
+- **Display** (700, 28px, 1.2): page-level headings ("InnovaLab", "Iniciar sesión"). Token exists
   (`--font-size-xl`) but no heading currently opts into it explicitly — see Do's and Don'ts.
 - **Title** (700, 20px, 1.3): secondary headings (auth side-panel `h2`).
 - **Body** (400, 16px, 1.5): running text, form inputs, buttons.

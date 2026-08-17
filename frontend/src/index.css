@@ -1,7 +1,8 @@
 :root {
-  /* Color institucional - Instituto La Salle. Primary y Accent son
-     aproximacion visual (captura de pantalla del sitio real, no gotero
-     exacto de DevTools) - ajustar aca si se confirma el valor preciso. */
+  /* Color institucional - Instituto La Salle - Bilingual School Barranquilla.
+     Primary y Accent son aproximacion visual (captura de pantalla del sitio
+     real, no gotero exacto de DevTools) - ajustar aca si se confirma el
+     valor preciso. */
   --color-primary: #12294b;
   --color-primary-hover: #1a3763;
   --color-accent: #e8a23a;
@@ -36,6 +37,22 @@
   --radius: 8px;
   --shadow-card:
     0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06);
+
+  /* Vidrio (glassmorphism) - direccion visual nueva, arranca en la pantalla
+     Inicio y en el chrome compartido (sidebar/topbar de AppShell). Prefijo
+     --glass-* a proposito: Card.css y ProjectsPage siguen usando los tokens
+     solidos de arriba hasta que se migren aparte, no se pisan entre si.
+     Las opacidades del navy estan mas altas que en el mockup de exploracion
+     (0.62/0.78) porque aca llevan texto real encima (nav, botones) y
+     necesitan suficiente contraste, no solo verse bien de lejos. */
+  --glass-surface: rgba(255, 255, 255, 0.55);
+  --glass-surface-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-primary: rgba(18, 41, 75, 0.82);
+  --glass-primary-strong: rgba(18, 41, 75, 0.92);
+  --glass-blur: blur(20px) saturate(160%);
+  --glass-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 30px rgba(18, 41, 75, 0.1);
 }
 
 * {
@@ -48,6 +65,41 @@ body {
   font-size: var(--font-size-base);
   color: var(--color-text);
   background: var(--color-background);
+  position: relative;
+}
+
+/* Atmosfera del vidrio: dos manchas de color institucional desenfocadas,
+   fijas detras de todo el contenido (z-index -1, no necesitan que cada
+   pagina se envuelva en su propio wrapper). Se ven a traves del sidebar y
+   el topbar glass; detras de las tarjetas solidas (ProjectsPage) tambien
+   se notan un poco, dando continuidad sin tener que migrar esas tarjetas
+   todavia. */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+body::before {
+  width: 520px;
+  height: 520px;
+  background: var(--color-primary);
+  opacity: 0.25;
+  top: -180px;
+  left: -120px;
+}
+
+body::after {
+  width: 480px;
+  height: 480px;
+  background: var(--color-accent);
+  opacity: 0.25;
+  bottom: -160px;
+  right: -100px;
 }
 
 h1,

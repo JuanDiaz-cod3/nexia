@@ -2,8 +2,12 @@ import type { ReactNode } from 'react'
 import { Button } from './Button'
 import './AppShell.css'
 
+export type AppPage = 'home' | 'projects'
+
 interface AppShellProps {
   title: string
+  activePage: AppPage
+  onNavigate: (page: AppPage) => void
   onLogout: () => void
   children: ReactNode
 }
@@ -12,17 +16,30 @@ interface AppShellProps {
 // pantalla que mostrar todavia. Se van habilitando uno por uno (agregando
 // su propio manejador + contenido) a medida que se construyen, en vez de
 // levantar toda la navegacion de una sola vez.
-export function AppShell({ title, onLogout, children }: AppShellProps) {
+export function AppShell({ title, activePage, onNavigate, onLogout, children }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-brand">
-          <span className="app-brand-name">Nexia</span>
-          <span className="app-brand-sub">Instituto La Salle</span>
+          <span className="app-brand-name">InnovaLab</span>
+          <span className="app-brand-sub">Instituto La Salle - Bilingual School Barranquilla</span>
         </div>
 
         <nav className="app-nav" aria-label="Navegación principal">
-          <span className="app-nav-item app-nav-item--active">Proyectos</span>
+          <button
+            type="button"
+            className={`app-nav-item${activePage === 'home' ? ' app-nav-item--active' : ''}`}
+            onClick={() => onNavigate('home')}
+          >
+            Inicio
+          </button>
+          <button
+            type="button"
+            className={`app-nav-item${activePage === 'projects' ? ' app-nav-item--active' : ''}`}
+            onClick={() => onNavigate('projects')}
+          >
+            Proyectos
+          </button>
           <span className="app-nav-item app-nav-item--disabled" aria-disabled="true">
             Estudiantes
           </span>

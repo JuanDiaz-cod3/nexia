@@ -3,6 +3,8 @@ import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { login, changePassword } from '../api/auth'
 import { ApiError } from '../api/client'
+import innovalabIconDark from '../assets/innovalab_icon_dark.svg'
+import innovalabLogoHorizontal from '../assets/innovalab_logo_horizontal.svg'
 import './AuthLayout.css'
 
 type Step = 'login' | 'reset'
@@ -91,10 +93,12 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
       </p>
       <div className="auth-container">
         <form className="auth-form-panel auth-form-panel--login" onSubmit={handleLogin}>
+          <img src={innovalabLogoHorizontal} alt="InnovaLab" className="auth-brand-logo" />
           <h1>Iniciar sesión</h1>
+          <p className="auth-form-sub">Ingresa con el usuario y contraseña que te dio el colegio.</p>
           <Input
             type="text"
-            placeholder="Usuario"
+            label="Usuario"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             disabled={step === 'reset'}
@@ -102,13 +106,17 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
           />
           <Input
             type="password"
-            placeholder="Contraseña"
+            label="Contraseña"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             disabled={step === 'reset'}
             autoComplete="current-password"
           />
-          {error && step === 'login' && <p className="auth-error">{error}</p>}
+          {error && step === 'login' && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
           <Button type="submit" disabled={loading || step === 'reset'}>
             Iniciar sesión
           </Button>
@@ -118,34 +126,43 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
             must_change_password sea true, no debe existir forma de
             esquivar este formulario desde la interfaz. */}
         <form className="auth-form-panel auth-form-panel--reset" onSubmit={handleReset}>
+          <img src={innovalabLogoHorizontal} alt="InnovaLab" className="auth-brand-logo" />
           <h1 ref={resetHeadingRef} tabIndex={-1}>
             Nueva contraseña
           </h1>
           <Input
             type="password"
-            placeholder="Nueva contraseña"
+            label="Nueva contraseña"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             autoComplete="new-password"
           />
           <Input
             type="password"
-            placeholder="Confirmar contraseña"
+            label="Confirmar contraseña"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             autoComplete="new-password"
           />
-          {error && step === 'reset' && <p className="auth-error">{error}</p>}
+          {error && step === 'reset' && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
           <Button type="submit" disabled={loading}>
             Guardar contraseña
           </Button>
         </form>
 
         <div className="auth-side-panel">
+          <img src={innovalabIconDark} alt="" className="auth-side-icon" />
           {step === 'login' ? (
             <>
-              <h2>Bienvenido a Nexia</h2>
-              <p>Consulta y gestiona los proyectos de investigación de tu colegio.</p>
+              <h2>Bienvenido a InnovaLab</h2>
+              <p>
+                Consulta y gestiona los proyectos de investigación del Instituto La Salle -
+                Bilingual School Barranquilla.
+              </p>
             </>
           ) : (
             <>

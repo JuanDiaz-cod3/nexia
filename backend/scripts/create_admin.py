@@ -31,7 +31,7 @@ def main() -> None:
 
         admin = User(
             school_id=school.id,
-            full_name="Administrador Nexia",
+            full_name="Administrador InnovaLab",
             username=ADMIN_USERNAME,
             email=ADMIN_EMAIL,
             password_hash=hash_password(ADMIN_PASSWORD),

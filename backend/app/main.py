@@ -8,7 +8,7 @@ from app.api.v1.projects import router as projects_router
 from app.api.v1.users import router as users_router
 from app.core.config import settings
 
-app = FastAPI(title="Nexia API")
+app = FastAPI(title="InnovaLab API")
 
 # Permite que el frontend (otro origen) llame a esta API desde el navegador.
 app.add_middleware(
