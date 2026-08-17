@@ -66,7 +66,7 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   `ondelete="CASCADE"` hacia `projects`, así que no hizo falta migración. En `MyProjectPage`,
   botón "Borrar" con confirmación inline en la tarjeta ("¿Seguro? Sí, borrar / Cancelar"),
   no diálogo nativo del navegador.
-- **Refresh token (implementado, falta probar en vivo):** el access token seguía durando
+- **Refresh token (implementado y verificado en vivo):** el access token seguía durando
   15 minutos sin ninguna forma de renovarse — al expirar, el usuario solo veía errores
   genéricos en pantalla. Ahora `login` devuelve también un `refresh_token` (JWT stateless,
   7 días, sin tabla nueva ni revocación — decisión consciente para no sobre-construir en
@@ -78,8 +78,11 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   usuario de vuelta al login limpio. Refresh token guardado en `localStorage` junto al
   access token (mismo patrón ya existente, se evaluó cookie `httpOnly` y se decidió
   posponerla al momento del deploy real, cuando de todas formas hay que tocar CORS entre
-  dominios). **Pendiente:** probarlo de punta a punta en el navegador (no se pudo probar
-  por `curl` porque la contraseña semilla del admin ya fue cambiada en una sesión anterior).
+  dominios). Verificado por `curl` (login, refresh, y los 4 casos de error — incluida la
+  protección de tipo: un access token no sirve como refresh y viceversa) y en el navegador
+  vía Chrome DevTools (access token corrupto → `401` → refresh silencioso → reintento
+  exitoso, confirmado en la pestaña Network; ambos tokens corruptos → logout limpio a la
+  pantalla de login, `localStorage` queda vacío).
 
 ## Qué falta — dentro del alcance de este corte
 
@@ -88,8 +91,8 @@ jurados, documentos y premios queda fuera de este corte a propósito.
 - [x] UX de "ya tengo proyecto" vs "no tengo proyecto todavía" — resuelto en
   `MyProjectPage` con los tres estados explícitos.
 - [x] `DELETE /projects/{id}` — implementado, cualquier integrante puede borrar.
-- [x] Expiración del access token + refresh token — implementados juntos (ver arriba).
-  **← falta probar en vivo en el navegador antes de dar por cerrado.**
+- [x] Expiración del access token + refresh token — implementados y verificados en vivo
+  (ver arriba).
 - [ ] Testing: no hay ningún test todavía, ni backend (pytest) ni frontend. Decidir el
   mínimo razonable para este corte antes de seguir agregando features.
 - [ ] CI: no hay pipeline configurado (ni lint ni tests corren automáticamente).
