@@ -14,6 +14,7 @@ export interface Project {
   status: string
   created_at: string
   members: ProjectMember[]
+  advisor: ProjectMember | null
 }
 
 export interface ProjectCreateInput {
@@ -55,5 +56,12 @@ export function updateProject(
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(input),
+  })
+}
+
+export function deleteProject(token: string, projectId: number): Promise<void> {
+  return apiFetch<void>(`/projects/${projectId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
   })
 }

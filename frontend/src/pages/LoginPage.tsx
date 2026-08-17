@@ -10,7 +10,7 @@ import './AuthLayout.css'
 type Step = 'login' | 'reset'
 
 interface LoginPageProps {
-  onAuthenticated: (token: string) => void
+  onAuthenticated: (token: string, refreshToken: string) => void
 }
 
 export function LoginPage({ onAuthenticated }: LoginPageProps) {
@@ -20,6 +20,7 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [token, setToken] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const resetHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -43,10 +44,11 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
     try {
       const result = await login(username, password)
       setToken(result.access_token)
+      setRefreshToken(result.refresh_token)
       if (result.must_change_password) {
         setStep('reset')
       } else {
-        onAuthenticated(result.access_token)
+        onAuthenticated(result.access_token, result.refresh_token)
       }
     } catch (err) {
       // ApiError trae el mensaje real del backend (usuario/clave invalidos,
@@ -65,7 +67,7 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
       setError('Las contraseñas no coinciden.')
       return
     }
-    if (!token) return
+    if (!token || !refreshToken) return
 
     setLoading(true)
     try {
@@ -74,7 +76,7 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
       // seguridad, pero no hace falta pedirsela de nuevo: ya la tenemos
       // en memoria de este mismo flujo.
       await changePassword(token, password, newPassword)
-      onAuthenticated(token)
+      onAuthenticated(token, refreshToken)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
     } finally {

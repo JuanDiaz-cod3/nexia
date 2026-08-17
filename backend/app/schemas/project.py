@@ -29,3 +29,4 @@ class ProjectOut(BaseModel):
     status: str
     created_at: datetime
     members: list[UserBasicOut]
+    advisor: UserBasicOut | None

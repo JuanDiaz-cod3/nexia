@@ -134,3 +134,31 @@ def update_project(
     db.commit()
     db.refresh(project)
     return project
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
+    project_id: int,
+    current_user: User = Depends(require_password_changed),
+    db: Session = Depends(get_db),
+) -> None:
+    project = db.get(Project, project_id)
+    if project is None or project.school_id != current_user.school_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"detail": "Proyecto no encontrado", "code": "not_found"},
+        )
+
+    # Mismo criterio que en PATCH: cualquier integrante puede borrar, no hay
+    # "dueño" unico del proyecto.
+    is_member = any(member.id == current_user.id for member in project.members)
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"detail": "No eres integrante de este proyecto", "code": "not_a_member"},
+        )
+
+    # ProjectMember tiene ondelete="CASCADE" hacia projects, asi que borrar
+    # la fila del proyecto se lleva las membresias con el en la base de datos.
+    db.delete(project)
+    db.commit()

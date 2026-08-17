@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Button } from './Button'
 import './AppShell.css'
 
-export type AppPage = 'home' | 'projects'
+export type AppPage = 'home' | 'projects' | 'my-project'
 
 interface AppShellProps {
   title: string
@@ -40,9 +40,13 @@ export function AppShell({ title, activePage, onNavigate, onLogout, children }: 
           >
             Proyectos
           </button>
-          <span className="app-nav-item app-nav-item--disabled" aria-disabled="true">
-            Estudiantes
-          </span>
+          <button
+            type="button"
+            className={`app-nav-item${activePage === 'my-project' ? ' app-nav-item--active' : ''}`}
+            onClick={() => onNavigate('my-project')}
+          >
+            Mi Proyecto
+          </button>
 
           <span className="app-nav-label">Fuera de alcance actual</span>
           <span className="app-nav-item app-nav-item--disabled" aria-disabled="true">

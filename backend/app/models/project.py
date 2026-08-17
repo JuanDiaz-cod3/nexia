@@ -33,3 +33,8 @@ class Project(Base):
     # inserciones se siguen haciendo a mano con el modelo ProjectMember.
     # Esta relacion es solo para LEER comodamente "quienes integran esto".
     members: Mapped[list["User"]] = relationship(secondary="project_members", viewonly=True)
+
+    # foreign_keys explicito: sin esto SQLAlchemy no sabe si esta relacion
+    # debe usar advisor_id o alguna FK futura hacia users, porque ya existe
+    # otro camino a User via project_members.
+    advisor: Mapped["User | None"] = relationship(foreign_keys=[advisor_id], viewonly=True)

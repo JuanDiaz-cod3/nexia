@@ -1,0 +1,121 @@
+.my-project-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.my-project-intro {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.my-project-form-card {
+  padding: var(--space-lg);
+}
+
+.my-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Mismo patron que .project-form .input-group en ProjectsPage.css: el
+   input-group no se estira solo dentro de un flex column. */
+.my-project-form .input-group {
+  width: 100%;
+}
+
+.my-project-form textarea.input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.my-project-form-submit {
+  align-self: center;
+}
+
+.my-project-form-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.my-project-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  text-align: left;
+}
+
+.my-project-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.my-project-detail-header h2 {
+  margin: 0;
+}
+
+.my-project-detail-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.my-project-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-background);
+}
+
+.my-project-delete-confirm p {
+  margin: 0;
+}
+
+.my-project-category {
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.my-project-status {
+  align-self: flex-start;
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius);
+}
+
+.my-project-summary {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.my-project-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-sm);
+}
+
+.my-project-section h3 {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.my-project-section p {
+  margin: 0;
+}
+
+.my-project-error {
+  color: #b91c1c;
+}

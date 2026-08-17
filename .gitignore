@@ -15,6 +15,7 @@ dist/
 
 # Sistema
 .DS_Store
+*.log
 
 # Claude
 .claude
