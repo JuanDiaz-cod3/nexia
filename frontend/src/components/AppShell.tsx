@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react'
 import { Button } from './Button'
+import type { CurrentUser } from '../api/users'
 import './AppShell.css'
 
-export type AppPage = 'home' | 'projects' | 'my-project'
+export type AppPage = 'home' | 'projects' | 'my-project' | 'admin-students'
 
 interface AppShellProps {
   title: string
   activePage: AppPage
   isAuthenticated: boolean
+  isAdmin: boolean
+  currentUser: CurrentUser | null
   onNavigate: (page: AppPage) => void
   onLogout: () => void
   children: ReactNode
@@ -21,6 +24,8 @@ export function AppShell({
   title,
   activePage,
   isAuthenticated,
+  isAdmin,
+  currentUser,
   onNavigate,
   onLogout,
   children,
@@ -56,6 +61,16 @@ export function AppShell({
             Mi Proyecto
           </button>
 
+          {isAdmin && (
+            <button
+              type="button"
+              className={`app-nav-item${activePage === 'admin-students' ? ' app-nav-item--active' : ''}`}
+              onClick={() => onNavigate('admin-students')}
+            >
+              Estudiantes
+            </button>
+          )}
+
           <span className="app-nav-label">Fuera de alcance actual</span>
           <span className="app-nav-item app-nav-item--disabled" aria-disabled="true">
             Evaluaciones
@@ -78,16 +93,32 @@ export function AppShell({
             Configuración
           </span>
         </nav>
+
+        {/* margin-top: auto en .app-sidebar-footer (CSS) empuja esto abajo
+            del todo - antes "Cerrar sesión" vivia en el topbar, desentonado
+            con el resto del chrome de la app (ver CLAUDE.md, la sidebar es
+            el "glass" navy, el topbar es claro). */}
+        {isAuthenticated && currentUser && (
+          <div className="app-sidebar-footer">
+            <div className="app-user-identity">
+              <span className="app-user-username">{currentUser.username}</span>
+              {currentUser.section_name && (
+                <span className="app-user-meta">
+                  {currentUser.section_name}
+                  {currentUser.group_label ? ` · ${currentUser.group_label}` : ''}
+                </span>
+              )}
+            </div>
+            <Button variant="secondary" onClick={onLogout} className="app-logout-btn">
+              Cerrar sesión
+            </Button>
+          </div>
+        )}
       </aside>
 
       <div className="app-content">
         <header className="app-topbar">
           <h1>{title}</h1>
-          {isAuthenticated && (
-            <Button variant="secondary" onClick={onLogout}>
-              Cerrar sesión
-            </Button>
-          )}
         </header>
         <main className="app-main">{children}</main>
       </div>

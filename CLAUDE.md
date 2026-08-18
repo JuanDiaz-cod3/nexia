@@ -62,9 +62,19 @@ idiomas dentro del código (nunca `estado` junto a `status` en el mismo esquema)
 ## Modelo de datos — entidades principales
 
 **Núcleo:** `schools` → `users` (con `username`, `email`, `account_type`: institutional/external,
-`must_change_password`) → `user_roles` (many-to-many con `roles`: admin, teacher, judge,
-student) → `projects` (con `advisor_id` FK a users, `academic_year_id`, `status`,
-`publication_consent`) → `project_members` (join users–projects).
+`must_change_password`, `section_id` nullable) → `user_roles` (many-to-many con `roles`: admin,
+teacher, judge, student) → `projects` (con `advisor_id` FK a users, `academic_year_id`, `status`,
+`publication_consent`, `section_id` nullable) → `project_members` (join users–projects).
+
+**Secciones y grupos (11°A/B/C):** `sections` (school_id, academic_year_id, name — ej. "11°A";
+se crea sola la primera vez que un admin la usa, sin pantalla de gestión aparte todavía) es el
+salón completo, distinto de un "grupo" de proyecto (2-4 estudiantes). `student_groups`
+(school_id, academic_year_id, section_id) + `student_group_members` (join, con la misma regla
+de "un estudiante por año académico" que `project_members`) existen para que el admin pueda
+pre-crear cuentas de estudiantes agrupadas ANTES de que exista un proyecto real — cuando uno de
+ellos crea su proyecto (`POST /projects`), el backend agrega automáticamente al resto del grupo
+como integrantes del mismo proyecto. `projects.section_id` se copia del creador en ese momento
+(denormalizado, mismo patrón que `school_id`/`academic_year_id` en `projects`).
 
 **Sustentación y evaluación** (ejercicio conceptual, no comprometido como parte del plan de
 InnovaLab — ver nota abajo): `defense_sessions` (date, time, location) ← `session_judges`

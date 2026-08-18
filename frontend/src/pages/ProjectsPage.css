@@ -19,7 +19,9 @@
 }
 
 .project-category {
-  color: var(--color-accent);
+  /* --color-accent-text (no --color-accent): el accent crudo sobre blanco
+     da ~2.2:1 de contraste, falla WCAG AA (4.5:1). Ver ronda de impeccable. */
+  color: var(--color-accent-text);
   font-size: var(--font-size-sm);
   margin: 0;
 }
@@ -38,7 +40,9 @@
 .project-status {
   align-self: flex-start;
   background: var(--color-accent-bg);
-  color: var(--color-accent);
+  /* --color-accent-text: --color-accent sobre --color-accent-bg da ~1.85:1,
+     falla WCAG AA (4.5:1). Ver ronda de impeccable. */
+  color: var(--color-accent-text);
   font-size: var(--font-size-sm);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius);
@@ -52,6 +56,7 @@
    repositorio de proyectos, no solo el propio. */
 .project-admin-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   padding-top: var(--space-xs);
   border-top: 1px solid var(--color-border);
@@ -65,6 +70,20 @@
   text-align: left;
 }
 
+.project-edit-form-title {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* La tarjeta recibe foco por script al entrar a edicion (ver editCardRef
+   en ProjectsPage.tsx) - necesita su propio indicador visible, como el h1
+   de reset en AuthLayout.css. */
+.project-card:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .project-edit-form .input-group {
   width: 100%;
 }
@@ -76,6 +95,7 @@
 
 .project-edit-form-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
 }
 
@@ -92,4 +112,13 @@
 
 .project-delete-confirm p {
   margin: 0;
+}
+
+/* Mismo breakpoint que LandingPage.css/HomePage.css - antes era el unico
+   de los tres archivos de esta ronda sin ningun @media (hallazgo de la
+   ronda de impeccable). */
+@media (max-width: 640px) {
+  .projects-page {
+    padding: var(--space-md);
+  }
 }

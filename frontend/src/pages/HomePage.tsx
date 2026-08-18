@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/Button'
+import { Seal } from '../components/Seal'
 import { listProjects, type Project } from '../api/projects'
 import { ApiError } from '../api/client'
 import './HomePage.css'
@@ -36,6 +37,10 @@ const QUOTES: Quote[] = [
 ]
 
 const QUOTE_ROTATE_MS = 10_000
+// Tiene que coincidir con la transicion de opacity de .home-quote-content
+// en HomePage.css - es la mitad del ciclo: se apaga, recien ahi se cambia
+// el texto, y se vuelve a prender.
+const QUOTE_FADE_MS = 400
 
 // Estilo "vidrio" (ver index.css, tokens --glass-*): esta es la primera
 // pantalla que lo adopta. Estudiantes activos no tiene de donde salir
@@ -46,13 +51,23 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quoteIndex, setQuoteIndex] = useState(0)
+  // Antes esto se lograba desmontando/remontando el bloque via key={} - se
+  // veia como un parpadeo en blanco y despues un fundido de entrada, no un
+  // fundido cruzado de verdad (hallazgo de la ronda de impeccable). Ahora
+  // "fading" apaga el bloque via CSS, se cambia el texto recien cuando ya
+  // esta invisible, y se vuelve a prender - sin blanco de por medio.
+  const [fading, setFading] = useState(false)
 
   // Sin llamada al servidor: avanza un indice sobre el array local cada
   // QUOTE_ROTATE_MS mientras Inicio este montado. El timer vive y muere en
   // el navegador de quien mira la pagina, no le cuesta nada al backend.
   useEffect(() => {
     const id = setInterval(() => {
-      setQuoteIndex((current) => (current + 1) % QUOTES.length)
+      setFading(true)
+      setTimeout(() => {
+        setQuoteIndex((current) => (current + 1) % QUOTES.length)
+        setFading(false)
+      }, QUOTE_FADE_MS)
     }, QUOTE_ROTATE_MS)
     return () => clearInterval(id)
   }, [])
@@ -130,11 +145,7 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
             <div className="home-projects-row">
               {recentProjects.map((project) => (
                 <div className="glass-panel home-project-card" key={project.id}>
-                  {project.status === 'published' && (
-                    <span className="home-seal" aria-label="Proyecto publicado">
-                      ✓
-                    </span>
-                  )}
+                  {project.status === 'published' && <Seal className="home-seal" />}
                   {project.category && <span className="home-tag">{project.category}</span>}
                   <h3>{project.title}</h3>
                   <p className="home-project-meta">
@@ -171,10 +182,7 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
         </div>
 
         <div className="home-quote-banner">
-          {/* key={quoteIndex}: al cambiar, React desmonta y vuelve a montar
-              este bloque, lo que retiene la animacion de fundido de
-              HomePage.css en cada frase nueva sin manejar estado a mano. */}
-          <div className="home-quote-content" key={quoteIndex}>
+          <div className={`home-quote-content${fading ? ' home-quote-content--fading' : ''}`}>
             <span className="home-quote-mark" aria-hidden="true">
               "
             </span>

@@ -2,33 +2,36 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.api.deps import is_admin, require_password_changed
+from app.api.deps import get_current_academic_year, is_admin, require_password_changed
 from app.db.session import get_db
-from app.models import AcademicYear, Project, ProjectMember, User
+from app.models import Project, ProjectMember, StudentGroupMember, User
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
 
 router = APIRouter()
 
 
-def _get_current_academic_year(db: Session, school_id: int) -> AcademicYear:
-    # Fase actual: un solo año academico sembrado por colegio, tomamos el
-    # mas reciente. Cuando exista gestion real de años academicos, esto se
-    # reemplaza por una consulta al que este marcado como "activo".
-    year = (
-        db.query(AcademicYear)
-        .filter_by(school_id=school_id)
-        .order_by(AcademicYear.id.desc())
+def _get_group_mate_ids(db: Session, user_id: int, academic_year_id: int) -> list[int]:
+    # El admin puede pre-crear un grupo de estudiantes antes de que exista
+    # un proyecto (ver StudentGroup/StudentGroupMember) - esto busca "con
+    # quien comparte grupo este usuario este año" para agregarlos como
+    # integrantes automaticamente cuando alguno del grupo crea el proyecto.
+    # Si el usuario no fue creado via ese flujo (no tiene grupo), no pasa
+    # nada - devuelve lista vacia y el proyecto se crea solo para el.
+    membership = (
+        db.query(StudentGroupMember)
+        .filter_by(user_id=user_id, academic_year_id=academic_year_id)
         .first()
     )
-    if year is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "detail": "El colegio no tiene un año académico configurado",
-                "code": "no_academic_year",
-            },
-        )
-    return year
+    if membership is None:
+        return []
+
+    mates = (
+        db.query(StudentGroupMember.user_id)
+        .filter_by(group_id=membership.group_id, academic_year_id=academic_year_id)
+        .filter(StudentGroupMember.user_id != user_id)
+        .all()
+    )
+    return [mate_id for (mate_id,) in mates]
 
 
 # Publicos, sin autenticacion: el archivo de proyectos esta abierto a todo
@@ -80,11 +83,12 @@ def create_project(
     current_user: User = Depends(require_password_changed),
     db: Session = Depends(get_db),
 ) -> Project:
-    academic_year = _get_current_academic_year(db, current_user.school_id)
+    academic_year = get_current_academic_year(db, current_user.school_id)
 
     project = Project(
         school_id=current_user.school_id,
         academic_year_id=academic_year.id,
+        section_id=current_user.section_id,
         title=payload.title,
         category=payload.category,
         summary=payload.summary,
@@ -113,6 +117,26 @@ def create_project(
                 "code": "already_in_project",
             },
         )
+
+    # El proyecto del creador ya quedo confirmado arriba - agregar a sus
+    # companeros de grupo es "best effort" a partir de aca: cada uno se
+    # intenta por separado (savepoint), asi que si alguno ya esta en otro
+    # proyecto este año (no deberia pasar con un grupo recien creado, pero
+    # no vale la pena arriesgar la creacion del creador por eso) se lo
+    # saltea en vez de tirar abajo todo.
+    for mate_id in _get_group_mate_ids(db, current_user.id, academic_year.id):
+        try:
+            with db.begin_nested():
+                db.add(
+                    ProjectMember(
+                        project_id=project.id,
+                        user_id=mate_id,
+                        academic_year_id=academic_year.id,
+                    )
+                )
+        except IntegrityError:
+            continue
+    db.commit()
 
     db.refresh(project)
     return project

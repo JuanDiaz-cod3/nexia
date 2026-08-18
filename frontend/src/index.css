@@ -7,7 +7,23 @@
   --color-primary-hover: #1a3763;
   --color-accent: #e8a23a;
   --color-accent-bg: #fbebd2;
+  /* Version oscurecida de --color-accent para texto/iconos SOBRE
+     --color-accent-bg o sobre blanco: --color-accent tal cual no pasa
+     WCAG AA en esos fondos (~2:1, hace falta 4.5:1). Usar esta variante
+     en vez del accent crudo para cualquier texto, no solo para fondos
+     solidos grandes. */
+  --color-accent-text: #8a5c14;
+  /* Version mas clara de --color-accent, solo para texto chico sobre el
+     panel navy translucido del hero de Inicio: el accent base ahi da
+     ~3.6:1 (falla WCAG AA), esta version da ~4.9:1. Medido en vivo, no
+     estimado - ver ronda de impeccable. */
+  --color-accent-light: #f5c778;
   --color-success: #3b6e4f;
+  /* Mismo rojo que ya usaban los mensajes de error de auth/formularios
+     (antes hardcodeado en cada .css) - promovido a variable para que el
+     boton "danger" y cualquier texto de error compartan el mismo tono. */
+  --color-danger: #b91c1c;
+  --color-danger-hover: #991616;
 
   /* Color neutro */
   --color-surface: #ffffff;

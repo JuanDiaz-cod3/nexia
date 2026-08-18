@@ -4,18 +4,23 @@ import { LoginPage } from './pages/LoginPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { MyProjectPage } from './pages/MyProjectPage'
 import { HomePage } from './pages/HomePage'
+import { AdminStudentsPage } from './pages/AdminStudentsPage'
 import { AppShell, type AppPage } from './components/AppShell'
 import { onSessionExpired } from './api/client'
+import { getCurrentUser, type CurrentUser } from './api/users'
 
 const PAGE_TITLES: Record<AppPage, string> = {
   home: 'Inicio',
   projects: 'Proyectos',
   'my-project': 'Mi Proyecto',
+  'admin-students': 'Estudiantes',
 }
 
-// Unica pagina que de verdad exige sesion iniciada - Inicio y Proyectos son
-// el archivo publico (ver CLAUDE.md, "Reglas de negocio criticas").
-const PROTECTED_PAGE: AppPage = 'my-project'
+// Paginas que exigen sesion iniciada - Inicio y Proyectos son el archivo
+// publico (ver CLAUDE.md, "Reglas de negocio criticas"). "admin-students"
+// ademas exige el rol admin (ver mas abajo), no solo estar logueado.
+const PROTECTED_PAGES: AppPage[] = ['my-project', 'admin-students']
+const DEFAULT_PROTECTED_PAGE: AppPage = 'my-project'
 
 function App() {
   // Se inicializa leyendo localStorage: si ya habia un token guardado de
@@ -30,6 +35,29 @@ function App() {
   // iniciada (el token si sobrevivia al refresh, pero "ya pase la landing"
   // no) - una vez que se cruza, no vuelve a aparecer en este navegador.
   const [entered, setEntered] = useState(() => localStorage.getItem('entered') === 'true')
+
+  // Se resuelve una sola vez aca (no en cada pantalla que lo necesite) para
+  // no repetir la misma llamada a /users/me en Proyectos, en el sidebar,
+  // etc. - un solo lugar trae el usuario, el resto solo lo lee.
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  useEffect(() => {
+    if (!token) {
+      setCurrentUser(null)
+      return
+    }
+    let cancelled = false
+    getCurrentUser(token)
+      .then((user) => {
+        if (!cancelled) setCurrentUser(user)
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentUser(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+  const isAdmin = currentUser?.roles.includes('admin') ?? false
 
   function handleEnter() {
     localStorage.setItem('entered', 'true')
@@ -52,7 +80,7 @@ function App() {
     localStorage.setItem('access_token', newToken)
     localStorage.setItem('refresh_token', newRefreshToken)
     setToken(newToken)
-    setPage(loginTarget ?? PROTECTED_PAGE)
+    setPage(loginTarget ?? DEFAULT_PROTECTED_PAGE)
     setLoginTarget(null)
   }
 
@@ -66,8 +94,13 @@ function App() {
   }
 
   function handleNavigate(target: AppPage) {
-    if (target === PROTECTED_PAGE && !token) {
+    if (PROTECTED_PAGES.includes(target) && !token) {
       setLoginTarget(target)
+      return
+    }
+    // El item de nav ni se muestra sin isAdmin (ver AppShell), esto es
+    // solo una segunda barrera por si acaso.
+    if (target === 'admin-students' && !isAdmin) {
       return
     }
     setPage(target)
@@ -94,14 +127,17 @@ function App() {
       title={PAGE_TITLES[page]}
       activePage={page}
       isAuthenticated={token !== null}
+      isAdmin={isAdmin}
+      currentUser={currentUser}
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
       {page === 'home' && (
         <HomePage token={token} onExploreProjects={() => handleNavigate('projects')} />
       )}
-      {page === 'projects' && <ProjectsPage token={token} />}
+      {page === 'projects' && <ProjectsPage token={token} isAdmin={isAdmin} />}
       {page === 'my-project' && token && <MyProjectPage token={token} />}
+      {page === 'admin-students' && token && isAdmin && <AdminStudentsPage token={token} />}
     </AppShell>
   )
 }

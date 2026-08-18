@@ -16,6 +16,9 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     school_id: Mapped[int] = mapped_column(ForeignKey("schools.id"), nullable=False)
+    # Nullable: admin/teacher/judge no tienen seccion (11°A/B/C), solo los
+    # estudiantes. Se asigna al crear la cuenta via POST /admin/student-groups.
+    section_id: Mapped[int | None] = mapped_column(ForeignKey("sections.id"))
     full_name: Mapped[str] = mapped_column(nullable=False)
     username: Mapped[str] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(nullable=False)

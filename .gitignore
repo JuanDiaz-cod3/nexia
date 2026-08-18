@@ -18,6 +18,10 @@ dist/
 .DS_Store
 *.log
 
+# Notas personales de testing (contienen pasos con IDs/datos reales de la
+# base de datos - no son documentacion del proyecto, solo scratch).
+TESTING-USUARIOS-SUPABASE.md
+
 # Claude
 .claude
 

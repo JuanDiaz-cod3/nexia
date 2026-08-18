@@ -38,7 +38,9 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  /* --color-accent-light, no --color-accent: contra el panel navy
+     translucido de .home-hero, el accent base da ~3.6:1 (falla WCAG AA). */
+  color: var(--color-accent-light);
 }
 
 .home-hero-title {
@@ -144,7 +146,7 @@
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.03em;
-  color: #8a5c14;
+  color: var(--color-accent-text);
   background: var(--color-accent-bg);
   border-radius: 100px;
   padding: 3px 9px;
@@ -157,22 +159,13 @@
 }
 
 /* "El sello" - elemento de firma del sistema de disenio, definido en
-   CLAUDE.md: solo aparece sobre proyectos con status = published. */
+   CLAUDE.md: solo aparece sobre proyectos con status = published. El
+   dibujo (anillos + "IL") vive en components/Seal.tsx y Seal.css - esto
+   solo lo posiciona en la esquina de la tarjeta. */
 .home-seal {
   position: absolute;
   top: var(--space-sm);
   right: var(--space-sm);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2px solid var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(232, 162, 58, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-accent);
-  font-weight: 700;
-  font-size: 12px;
 }
 
 .home-side-panel {
@@ -220,6 +213,10 @@
   margin: 0 auto;
 }
 
+/* opacity + transition (no un @keyframes de solo entrada): el texto recien
+   cambia en HomePage.tsx cuando --fading ya bajo la opacidad a 0, asi que
+   se ve como un fundido cruzado real en vez de "parpadeo en blanco y
+   despues entra" - ver ronda de impeccable. */
 .home-quote-content {
   display: flex;
   flex-direction: column;
@@ -227,7 +224,12 @@
   gap: 2px;
   max-width: 560px;
   text-align: center;
-  animation: home-quote-fade 0.6s ease;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+.home-quote-content--fading {
+  opacity: 0;
 }
 
 .home-quote-mark {
@@ -253,20 +255,9 @@
   margin-top: var(--space-xs);
 }
 
-@keyframes home-quote-fade {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .home-quote-content {
-    animation: none;
+    transition: none;
   }
 }
 

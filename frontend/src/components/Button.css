@@ -36,3 +36,12 @@
 .button--secondary:hover:not(:disabled) {
   background: var(--color-background);
 }
+
+.button--danger {
+  background: var(--color-danger);
+  color: var(--color-text-on-primary);
+}
+
+.button--danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}

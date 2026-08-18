@@ -1,14 +1,17 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { listProjects, updateProject, deleteProject, type Project } from '../api/projects'
-import { getCurrentUser } from '../api/users'
 import { ApiError } from '../api/client'
 import './ProjectsPage.css'
 
 interface ProjectsPageProps {
   token: string | null
+  // Se resuelve una sola vez en App.tsx (ver isAdmin ahi) y se pasa como
+  // prop - evita repetir la misma llamada a /users/me que ya hace App.tsx
+  // para decidir si mostrar el item "Estudiantes" en el sidebar.
+  isAdmin: boolean
 }
 
 // Solo lectura para todo el mundo a proposito: explorar el archivo de
@@ -17,9 +20,8 @@ interface ProjectsPageProps {
 // editar/borrar sobre CUALQUIER proyecto (control total del repositorio,
 // no solo el suyo) - por eso esta pantalla, y no MyProjectPage, es donde
 // vive esa capacidad.
-export function ProjectsPage({ token }: ProjectsPageProps) {
+export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
   const [projects, setProjects] = useState<Project[]>([])
-  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +36,14 @@ export function ProjectsPage({ token }: ProjectsPageProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Mueve el foco a la tarjeta que cambio de estado - sin esto, un lector
+  // de pantalla no tiene forma de saber que el contenido debajo del cursor
+  // se reemplazo por un formulario (edicion) o una advertencia (borrado).
+  const editCardRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (editingId !== null) editCardRef.current?.focus()
+  }, [editingId])
+
   useEffect(() => {
     let cancelled = false
 
@@ -41,13 +51,9 @@ export function ProjectsPage({ token }: ProjectsPageProps) {
       setLoading(true)
       setError(null)
       try {
-        const [projectsData, user] = await Promise.all([
-          listProjects(token),
-          token ? getCurrentUser(token) : Promise.resolve(null),
-        ])
+        const projectsData = await listProjects(token)
         if (!cancelled) {
           setProjects(projectsData)
-          setIsAdmin(user?.roles.includes('admin') ?? false)
         }
       } catch (err) {
         if (!cancelled) {
@@ -132,8 +138,9 @@ export function ProjectsPage({ token }: ProjectsPageProps) {
           {projects.map((project) => {
             if (isAdmin && editingId === project.id) {
               return (
-                <Card key={project.id} className="project-card">
+                <Card key={project.id} className="project-card" ref={editCardRef} tabIndex={-1}>
                   <form className="project-edit-form" onSubmit={(event) => handleUpdate(event, project.id)}>
+                    <h3 className="project-edit-form-title">Editando: {project.title}</h3>
                     <Input
                       label="Título"
                       value={editTitle}
@@ -185,7 +192,7 @@ export function ProjectsPage({ token }: ProjectsPageProps) {
                   <div className="project-admin-controls">
                     {confirmingDeleteId === project.id ? (
                       <div className="project-delete-confirm">
-                        <p>¿Borrar este proyecto? Esta acción no se puede deshacer.</p>
+                        <p role="alert">¿Borrar este proyecto? Esta acción no se puede deshacer.</p>
                         {deleteError && <p className="projects-error">{deleteError}</p>}
                         <div className="project-edit-form-actions">
                           <Button
@@ -200,6 +207,7 @@ export function ProjectsPage({ token }: ProjectsPageProps) {
                           </Button>
                           <Button
                             type="button"
+                            variant="danger"
                             onClick={() => handleDelete(project.id)}
                             disabled={deleteLoading}
                           >

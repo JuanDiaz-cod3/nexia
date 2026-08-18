@@ -7,12 +7,67 @@
 .app-sidebar {
   width: 240px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  /* sticky + 100vh: sin esto, la sidebar se estiraba a la altura del
+     contenido (Inicio es largo) y el pie con "Cerrar sesion" quedaba fuera
+     de la pantalla hasta hacer scroll - todo lo contrario de un elemento
+     de navegacion siempre visible. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
   background: var(--glass-primary);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-right: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--color-text-on-primary);
   padding: var(--space-lg) var(--space-md);
+}
+
+/* margin-top: auto en el flex column de .app-sidebar la empuja al fondo,
+   pegada al borde inferior sin importar cuanto mida el nav de arriba. */
+.app-sidebar-footer {
+  margin-top: auto;
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.app-user-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-sm);
+}
+
+.app-user-username {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.app-user-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* El boton "secondary" compartido asume texto navy sobre fondo claro (ver
+   Button.css) - ilegible sobre el navy glass de la sidebar, asi que se
+   pisa el color/borde solo aca, sin tocar el componente compartido. */
+.app-logout-btn.button--secondary {
+  width: 100%;
+  color: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: transparent;
+}
+
+.app-logout-btn.button--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .app-brand {
@@ -121,6 +176,9 @@
 
   .app-sidebar {
     width: 100%;
+    position: static;
+    height: auto;
+    overflow-y: visible;
   }
 
   .app-topbar {

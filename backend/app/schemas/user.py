@@ -15,6 +15,14 @@ class UserOut(BaseModel):
     account_type: str
     must_change_password: bool
     roles: list[str]
+    # None para admin/teacher/judge (no tienen seccion) o para un estudiante
+    # que todavia no fue asignado a ninguna (se registro por su cuenta, no
+    # via POST /admin/student-groups).
+    section_name: str | None
+    # None si no esta en ningun grupo este año academico (idem arriba, o el
+    # grupo no existe/quedo vacio). "Grupo N": mismo numero por seccion que
+    # ya usa la pantalla de admin, no el id global.
+    group_label: str | None
 
 
 class UserBasicOut(BaseModel):

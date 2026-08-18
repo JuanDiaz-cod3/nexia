@@ -16,6 +16,10 @@ class Project(Base):
         ForeignKey("academic_years.id"), nullable=False
     )
     advisor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    # Nullable y copiado del creador al momento de crear el proyecto (ver
+    # create_project en projects.py) - no todo estudiante paso por el flujo
+    # de admin que asigna seccion, asi que no siempre hay de donde copiarlo.
+    section_id: Mapped[int | None] = mapped_column(ForeignKey("sections.id"))
     title: Mapped[str] = mapped_column(nullable=False)
     category: Mapped[str | None] = mapped_column()
     summary: Mapped[str | None] = mapped_column(Text())

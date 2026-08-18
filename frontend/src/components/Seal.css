@@ -1,0 +1,19 @@
+.seal {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.seal-ring--accent {
+  stroke: var(--color-accent);
+}
+
+.seal-ring--primary {
+  stroke: var(--color-primary);
+}
+
+.seal-ink {
+  fill: var(--color-primary);
+  font-family: var(--font-serif);
+  font-weight: 700;
+}

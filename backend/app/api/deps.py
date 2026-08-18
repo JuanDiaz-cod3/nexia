@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.jwt import decode_access_token
 from app.db.session import get_db
-from app.models import User
+from app.models import AcademicYear, User
 
 # HTTPBearer lee el header "Authorization: Bearer <token>" y separa el
 # token del prefijo "Bearer " por nosotros.
@@ -59,3 +59,39 @@ def require_password_changed(user: User = Depends(get_current_user)) -> User:
 # Depends() como las de arriba.
 def is_admin(user: User) -> bool:
     return any(role.name == "admin" for role in user.roles)
+
+
+# Esta si es un gate duro (Depends()): para endpoints que son SOLO de
+# admin (ej. POST /admin/student-groups), no un OR sobre otra regla.
+def require_admin(user: User = Depends(require_password_changed)) -> User:
+    if not is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"detail": "Requiere permisos de administrador", "code": "admin_required"},
+        )
+    return user
+
+
+# Compartida entre projects.py y admin.py - vivia solo en projects.py hasta
+# que el segundo caller la necesito; si diverge entre los dos endpoints que
+# la usan, "el año academico actual" podria significar cosas distintas
+# segun por donde entres, asi que se centraliza aca.
+def get_current_academic_year(db: Session, school_id: int) -> AcademicYear:
+    # Fase actual: un solo año academico sembrado por colegio, tomamos el
+    # mas reciente. Cuando exista gestion real de años academicos, esto se
+    # reemplaza por una consulta al que este marcado como "activo".
+    year = (
+        db.query(AcademicYear)
+        .filter_by(school_id=school_id)
+        .order_by(AcademicYear.id.desc())
+        .first()
+    )
+    if year is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "detail": "El colegio no tiene un año académico configurado",
+                "code": "no_academic_year",
+            },
+        )
+    return year
