@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    # Mismo contenedor que docker-compose.test.yml, pero declarado como
+    # "service" de Actions: GitHub lo levanta antes del job y lo tira
+    # abajo al terminar. El mapeo 5433:5432 es a proposito - conftest.py
+    # tiene el DATABASE_URL de test hardcodeado a localhost:5433 (mismo
+    # puerto que se usa en local, para no tener que duplicar esa lectura
+    # de env var solo para CI).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: innovalab
+          POSTGRES_PASSWORD: innovalab
+          POSTGRES_DB: innovalab_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Correr tests
+        working-directory: backend
+        run: python -m pytest -v
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Correr tests
+        working-directory: frontend
+        run: npx vitest run

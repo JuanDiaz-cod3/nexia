@@ -4,7 +4,7 @@
 > registro histórico exhaustivo (para eso está `git log`), sino una foto de "dónde estamos"
 > y "qué sigue" para retomar rápido.
 
-Última actualización: 2026-08-17 (sesión 4)
+Última actualización: 2026-08-18 (sesión 6)
 
 ## Dónde estamos
 
@@ -139,8 +139,95 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   importar cuántos proyectos haya. El tiempo de reloj en local sigue siendo notorio
   (~100-150ms por consulta, viaje de red hasta el Supabase en us-east-2) — eso no lo
   arregla el código, se resuelve cuando el backend quede desplegado cerca de la DB.
-
-## Qué falta — dentro del alcance de este corte
+- **Secciones y grupos de estudiantes (`sections`, `student_groups`,
+  `student_group_members`):** el admin puede pre-crear cuentas de estudiantes agrupadas
+  por sección (11°A/B/C) antes de que exista un proyecto real. `sections` se crea sola la
+  primera vez que un admin la usa (sin pantalla de gestión aparte). Cuando uno del grupo
+  crea su proyecto (`POST /projects`), el backend agrega automáticamente al resto como
+  integrantes; `projects.section_id` se copia del creador (mismo patrón que
+  `school_id`/`academic_year_id`). Endpoints nuevos bajo `/admin`: `POST
+  /admin/student-groups` (crear grupo + cuentas), `GET /admin/sections`, `GET
+  /admin/student-groups`, `GET /admin/students/search`, `POST
+  /admin/student-groups/{id}/members` (agregar después a un grupo existente — si el grupo
+  ya tiene proyecto, también suma al nuevo integrante ahí). Contraseñas temporales
+  generadas con `secrets`, nunca persistidas en texto plano. Migración Alembic
+  `95708202ea_secciones_y_grupos_de_estudiantes`.
+- **Pantalla "Estudiantes" en el admin (`AdminStudentsPage`):** crear grupo nuevo o
+  agregar a uno existente, con selector de sección/grupo y buscador de estudiantes ya
+  registrados. Reemplaza el placeholder deshabilitado que tenía el sidebar.
+- **Identidad en el sidebar:** `GET /users/me` expone ahora `section_name` y
+  `group_label`; el sidebar los muestra junto al username, y "Cerrar sesión" bajó al pie,
+  sticky a toda la altura de la pantalla.
+- **Ronda de `impeccable` sobre Landing/Inicio/admin:** botón danger para borrar,
+  encabezado en el formulario de edición, foco movido a la tarjeta que cambia de estado,
+  contraste WCAG corregido (`--color-accent-text`, `--color-accent-light`), "el sello"
+  real reemplazando el checkmark genérico en proyectos publicados, crossfade real en las
+  frases rotativas de Inicio, responsive en `ProjectsPage.css`.
+- **Tests nuevos:** `test_admin_student_groups.py`, `test_admin_student_groups_extra.py`,
+  `test_projects_group_mates.py`, `test_users_me.py`.
+- **Testing de auth (`test_auth.py`, 11 tests nuevos, 38 en total):** cubre `login`
+  (credenciales correctas, usuario inexistente y password incorrecta devolviendo el mismo
+  `401 invalid_credentials` sin delatar cuál falló), `refresh` (token válido, token
+  corrupto, y el caso del claim `"type"` — un access token no sirve como refresh token),
+  `change-password` (caso exitoso verificado de punta a punta: el login viejo deja de
+  funcionar y el nuevo sí, más contraseña actual incorrecta), y las dependencias de
+  `deps.py` detrás de todo lo anterior vía `GET /users/me` como endpoint de referencia
+  (token corrupto, usuario borrado con token todavía válido, `must_change_password`
+  bloqueando con `403`). Al escribir los tests salió a la luz que el formato de error real
+  es `{"detail": "...", "code": "..."}` plano (un `exception_handler` en `main.py` aplana
+  el `HTTPException(detail={...})` a ese formato) — los primeros intentos asumieron
+  `detail` anidado y fallaron hasta corregir la aserción, no un bug del código.
+- **Testing de frontend arrancado (Vitest + jsdom):** primer test del frontend, nunca
+  había ninguno. Se instaló `vitest`+`jsdom` como devDependencies (mínimo necesario —
+  todavía sin React Testing Library, se suma cuando ataquemos un componente real) y se
+  agregó `test: { environment: 'jsdom' }` a `vite.config.ts`. Primer archivo:
+  `src/api/client.test.ts`, cubriendo `apiFetch`/`fetchWithRefresh` — la lógica de
+  refresh-en-silencio-y-reintento que hasta ahora solo se había verificado a mano (curl +
+  DevTools). 6 tests: pedido exitoso, error no-401 con `code` del backend, `204 No
+  Content` sin intentar parsear body, 401 `invalid_token` → refresca y reintenta con el
+  token nuevo (se verifica explícitamente el header `Authorization` del reintento), fallo
+  de refresh → limpia `localStorage` y dispara `onSessionExpired`, y 401 con otro `code`
+  (ej. `invalid_credentials`) que NO dispara el refresh. `fetch` se mockea con
+  `vi.stubGlobal` — a diferencia de la regla de "no mockear la DB" en el backend, acá
+  mockear `fetch` es la frontera de red estándar en testing de frontend, no una
+  desviación de esa regla.
+- **Primer test de componente (`LoginPage.test.tsx`, 5 tests):** se suma React Testing
+  Library (`@testing-library/react` + `user-event` + `jest-dom`). A diferencia de
+  `client.test.ts` (que mockea `fetch`), acá se mockea el módulo `../api/auth` completo
+  con `vi.mock` — la capa de red ya está probada, este archivo prueba la lógica y el
+  render del componente. Cubre: login exitoso, credenciales incorrectas (mensaje de
+  error visible), transición al panel de "Nueva contraseña" cuando
+  `must_change_password` es true (verificando que el foco se mueve al `h1`, no solo que
+  el texto exista — las dos secciones están siempre montadas en el DOM, el swap es CSS),
+  contraseñas que no coinciden en el reset, y reset exitoso confirmando que
+  `changePassword` reusa la clave temporal ya tipeada como `current_password`. Bug de
+  configuración encontrado y arreglado en el camino: el auto-cleanup de Testing Library
+  depende de un `afterEach` global que Vitest no expone por defecto (sin `test.globals`),
+  así que sin un `afterEach(cleanup)` explícito en `src/test/setup.ts` cada test dejaba
+  el DOM del render anterior montado y el siguiente encontraba inputs duplicados.
+- **Testing de frontend, resto de pantallas (32 tests en total):** mismo patrón que
+  `LoginPage` — mockear el módulo `api/*` correspondiente con `vi.mock`, nunca `fetch`
+  directo. `AppShell.test.tsx` (5): navegación, item "Estudiantes" condicionado a
+  `isAdmin`, pie de sesión condicionado a `isAuthenticated`. `ProjectsPage.test.tsx` (6):
+  carga/error/lista vacía, controles de admin ocultos para no-admin, editar y borrar
+  (con el paso de confirmación) para admin. `MyProjectPage.test.tsx` (5): estado "sin
+  proyecto" → formulario de creación, estado "con proyecto" → detalle con
+  integrantes/asesor, un proyecto ajeno no cuenta como propio, editar y borrar.
+  `AdminStudentsPage.test.tsx` (5, alcance reducido a propósito dado el tamaño de la
+  pantalla — dos modos con mucho estado): modo "grupo nuevo" (la cantidad de estudiantes
+  agrega/quita filas, creación exitosa muestra la tabla de contraseñas, error del
+  backend se muestra), modo "agregar a grupo existente" (carga secciones → grupos →
+  agrega un integrante nuevo, y el caso de una sección sin grupos todavía). Quedó fuera
+  de esta ronda: el flujo de buscar/seleccionar un estudiante *existente* dentro de ese
+  segundo modo, y los botones "Copiar" (usan `navigator.clipboard`, no mockeado).
+- **CI arrancado (`.github/workflows/ci.yml`):** dos jobs en paralelo, disparan en push a
+  `main` y en cada PR. `backend`: levanta Postgres 16 como *service* de Actions (mismo
+  concepto que `docker-compose.test.yml`, pero declarado en YAML — el mapeo de puerto
+  `5433:5432` es a propósito, coincide con el `DATABASE_URL` hardcodeado en
+  `conftest.py`), instala `requirements-dev.txt` (que ya trae `requirements.txt` adentro
+  via `-r`) y corre `pytest`. `frontend`: `npm ci`, `npm run lint` (oxlint) y
+  `vitest run`. No se agregó linter de Python — no había ninguno configurado en el
+  backend y sumar uno es una dependencia nueva que no se pidió.
 
 - [x] Pantalla real para "Estudiantes" en el sidebar — resuelto como "Mi Proyecto"
   (`MyProjectPage`), separada de `ProjectsPage`.
