@@ -10,7 +10,6 @@ import { ApiError } from '../api/client'
 import './ProjectsPage.css'
 
 interface ProjectsPageProps {
-  token: string | null
   // Se resuelve una sola vez en App.tsx (ver isAdmin ahi) y se pasa como
   // prop - evita repetir la misma llamada a /users/me que ya hace App.tsx
   // para decidir si mostrar el item "Estudiantes" en el sidebar.
@@ -23,7 +22,7 @@ interface ProjectsPageProps {
 // editar/borrar sobre CUALQUIER proyecto (control total del repositorio,
 // no solo el suyo) - por eso esta pantalla, y no MyProjectPage, es donde
 // vive esa capacidad.
-export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
+export function ProjectsPage({ isAdmin }: ProjectsPageProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +56,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
       setLoading(true)
       setError(null)
       try {
-        const projectsData = await listProjects(token)
+        const projectsData = await listProjects()
         if (!cancelled) {
           setProjects(projectsData)
         }
@@ -66,7 +65,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
         // documentos junto con la lista; si el archivo crece, se
         // reconsidera (mismo criterio que /projects/me en MyProjectPage).
         const documentLists = await Promise.all(
-          projectsData.map((project) => listDocuments(project.id, token).catch(() => [])),
+          projectsData.map((project) => listDocuments(project.id).catch(() => [])),
         )
         if (!cancelled) {
           const byProject: Record<number, Document[]> = {}
@@ -88,7 +87,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [])
 
   function startEdit(project: Project) {
     setEditingId(project.id)
@@ -100,11 +99,10 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
 
   async function handleUpdate(event: FormEvent, projectId: number) {
     event.preventDefault()
-    if (!token) return
     setEditError(null)
     setEditLoading(true)
     try {
-      const updated = await updateProject(token, projectId, {
+      const updated = await updateProject(projectId, {
         title: editTitle,
         category: editCategory || null,
         summary: editSummary || null,
@@ -119,11 +117,10 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
   }
 
   async function handleDelete(projectId: number) {
-    if (!token) return
     setDeleteError(null)
     setDeleteLoading(true)
     try {
-      await deleteProject(token, projectId)
+      await deleteProject(projectId)
       setProjects((prev) => prev.filter((p) => p.id !== projectId))
       setConfirmingDeleteId(null)
     } catch (err) {
@@ -134,10 +131,9 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
   }
 
   async function handleDeleteDocument(projectId: number, documentId: number) {
-    if (!token) return
     setDeletingDocumentId(documentId)
     try {
-      await deleteDocument(token, documentId)
+      await deleteDocument(documentId)
       setDocumentsByProject((prev) => ({
         ...prev,
         [projectId]: (prev[projectId] ?? []).filter((d) => d.id !== documentId),

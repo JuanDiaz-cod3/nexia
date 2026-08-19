@@ -26,9 +26,13 @@ logging.basicConfig(
 app = FastAPI(title="InnovaLab API")
 
 # Permite que el frontend (otro origen) llame a esta API desde el navegador.
+# allow_credentials=True es necesario para que el navegador mande/reciba las
+# cookies de auth (httpOnly) en requests cross-origin - sin esto, el fetch
+# del frontend con credentials:'include' no completa el CORS preflight.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,21 +1,21 @@
 import logging
 
 import jwt as pyjwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.cookies import (
+    REFRESH_COOKIE_NAME,
+    clear_auth_cookies,
+    set_access_cookie,
+    set_auth_cookies,
+)
 from app.core.jwt import create_access_token, create_refresh_token, decode_refresh_token
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models import User
-from app.schemas.auth import (
-    ChangePasswordRequest,
-    LoginRequest,
-    LoginResponse,
-    RefreshRequest,
-    RefreshResponse,
-)
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse
 
 logger = logging.getLogger("innovalab.auth")
 
@@ -23,7 +23,7 @@ router = APIRouter()
 
 
 @router.post("/auth/login", response_model=LoginResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     # Fase actual: un solo colegio activo (La Salle), asi que el username
     # alcanza para identificar al usuario. Cuando haya mas de un colegio,
     # este query va a necesitar filtrar tambien por school_id.
@@ -41,17 +41,21 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
 
     access_token = create_access_token(user_id=user.id)
     refresh_token = create_refresh_token(user_id=user.id)
-    return LoginResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        must_change_password=user.must_change_password,
-    )
+    set_auth_cookies(response, access_token, refresh_token)
+    return LoginResponse(must_change_password=user.must_change_password)
 
 
-@router.post("/auth/refresh", response_model=RefreshResponse)
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> RefreshResponse:
+@router.post("/auth/refresh", response_model=LoginResponse)
+def refresh(request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+    refresh_token = request.cookies.get(REFRESH_COOKIE_NAME)
+    if refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"detail": "Refresh token inválido o vencido", "code": "invalid_refresh_token"},
+        )
+
     try:
-        user_id = decode_refresh_token(payload.refresh_token)
+        user_id = decode_refresh_token(refresh_token)
     except pyjwt.PyJWTError:
         logger.warning("refresh_failed reason=invalid_or_expired_token")
         raise HTTPException(
@@ -71,7 +75,17 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> RefreshRe
     # (7 dias). Mantiene el flujo simple para este corte - si mas adelante
     # hace falta poder revocar sesiones antes de que expiren, ahi si hace
     # falta pasar a refresh tokens con estado (tabla en base de datos).
-    return RefreshResponse(access_token=create_access_token(user_id=user.id))
+    set_access_cookie(response, create_access_token(user_id=user.id))
+    return LoginResponse(must_change_password=user.must_change_password)
+
+
+@router.post("/auth/logout")
+def logout(response: Response) -> dict[str, str]:
+    # JS no puede borrar una cookie httpOnly - por eso el logout tiene que
+    # ser un endpoint que la borre desde el servidor (Set-Cookie con
+    # Max-Age=0), no algo que el frontend resuelva solo.
+    clear_auth_cookies(response)
+    return {"detail": "Sesión cerrada"}
 
 
 @router.post("/auth/change-password")

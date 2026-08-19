@@ -18,17 +18,13 @@ import { ApiError } from '../api/client'
 const ALLOWED_DOCUMENT_EXTENSIONS = '.pdf,.doc,.docx,.ppt,.pptx'
 import './MyProjectPage.css'
 
-interface MyProjectPageProps {
-  token: string
-}
-
 // Workspace personal del estudiante: a diferencia de ProjectsPage (solo
 // lectura, explora todo el colegio), aca gestiona su propio proyecto. No
 // existe GET /projects/me todavia - se reutiliza el listado completo y se
 // filtra en el cliente por membresia. Con la escala actual (un colegio
 // piloto) no vale la pena el endpoint dedicado; si el listado crece se
 // puede agregar despues sin tocar esta pantalla por fuera.
-export function MyProjectPage({ token }: MyProjectPageProps) {
+export function MyProjectPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,10 +59,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
       setLoading(true)
       setError(null)
       try {
-        const [projectsData, user] = await Promise.all([
-          listProjects(token),
-          getCurrentUser(token),
-        ])
+        const [projectsData, user] = await Promise.all([listProjects(), getCurrentUser()])
         if (!cancelled) {
           setProjects(projectsData)
           setCurrentUserId(user.id)
@@ -84,7 +77,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [])
 
   const myProject = projects.find((project) =>
     project.members.some((member) => member.id === currentUserId),
@@ -97,7 +90,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
   useEffect(() => {
     if (!myProject) return
     let cancelled = false
-    listDocuments(myProject.id, token)
+    listDocuments(myProject.id)
       .then((data) => {
         if (!cancelled) setDocuments(data)
       })
@@ -107,7 +100,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
     return () => {
       cancelled = true
     }
-  }, [myProject?.id, token])
+  }, [myProject?.id])
 
   function startEdit(project: Project) {
     setEditTitle(project.title)
@@ -124,7 +117,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
     setFormError(null)
     setFormLoading(true)
     try {
-      const project = await createProject(token, {
+      const project = await createProject({
         title,
         category: category || undefined,
         summary: summary || undefined,
@@ -143,7 +136,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
     setEditError(null)
     setEditLoading(true)
     try {
-      const updated = await updateProject(token, myProject.id, {
+      const updated = await updateProject(myProject.id, {
         title: editTitle,
         category: editCategory || null,
         summary: editSummary || null,
@@ -167,7 +160,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
     setUploadError(null)
     setUploading(true)
     try {
-      const document = await uploadDocument(token, myProject.id, file)
+      const document = await uploadDocument(myProject.id, file)
       setDocuments((prev) => [document, ...prev])
       input.value = ''
     } catch (err) {
@@ -180,7 +173,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
   async function handleDeleteDocument(documentId: number) {
     setDeletingDocumentId(documentId)
     try {
-      await deleteDocument(token, documentId)
+      await deleteDocument(documentId)
       setDocuments((prev) => prev.filter((d) => d.id !== documentId))
     } catch {
       // Silencioso a proposito: no hay un lugar obvio donde mostrar el
@@ -197,7 +190,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
     setDeleteError(null)
     setDeleteLoading(true)
     try {
-      await deleteProject(token, myProject.id)
+      await deleteProject(myProject.id)
       setProjects((prev) => prev.filter((p) => p.id !== myProject.id))
       setConfirmingDelete(false)
     } catch (err) {

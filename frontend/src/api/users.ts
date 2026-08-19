@@ -14,8 +14,6 @@ export interface CurrentUser {
   group_label: string | null
 }
 
-export function getCurrentUser(token: string): Promise<CurrentUser> {
-  return apiFetch<CurrentUser>('/users/me', {
-    headers: { Authorization: `Bearer ${token}` },
-  })
+export function getCurrentUser(): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>('/users/me')
 }

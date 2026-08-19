@@ -66,7 +66,7 @@ describe('MyProjectPage', () => {
     mockedGetCurrentUser.mockResolvedValueOnce(ME)
     mockedCreate.mockResolvedValueOnce(makeProject())
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
 
     expect(await screen.findByText(/Todavía no perteneces a un proyecto/)).toBeInTheDocument()
 
@@ -77,7 +77,6 @@ describe('MyProjectPage', () => {
       expect(screen.getByRole('heading', { name: 'Energía solar en el colegio' })).toBeInTheDocument()
     })
     expect(mockedCreate).toHaveBeenCalledWith(
-      'token-ana',
       expect.objectContaining({ title: 'Energía solar en el colegio' }),
     )
   })
@@ -86,7 +85,7 @@ describe('MyProjectPage', () => {
     mockedList.mockResolvedValueOnce([makeProject()])
     mockedGetCurrentUser.mockResolvedValueOnce(ME)
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
 
     expect(await screen.findByRole('heading', { name: 'Energía solar en el colegio' })).toBeInTheDocument()
     expect(screen.getByText('Ana Estudiante')).toBeInTheDocument()
@@ -99,7 +98,7 @@ describe('MyProjectPage', () => {
     ])
     mockedGetCurrentUser.mockResolvedValueOnce(ME)
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
 
     expect(await screen.findByText(/Todavía no perteneces a un proyecto/)).toBeInTheDocument()
   })
@@ -110,7 +109,7 @@ describe('MyProjectPage', () => {
     mockedGetCurrentUser.mockResolvedValueOnce(ME)
     mockedUpdate.mockResolvedValueOnce(makeProject({ title: 'Título editado' }))
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
     await screen.findByRole('heading', { name: 'Energía solar en el colegio' })
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -124,11 +123,7 @@ describe('MyProjectPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Título editado' })).toBeInTheDocument()
     })
-    expect(mockedUpdate).toHaveBeenCalledWith(
-      'token-ana',
-      1,
-      expect.objectContaining({ title: 'Título editado' }),
-    )
+    expect(mockedUpdate).toHaveBeenCalledWith(1, expect.objectContaining({ title: 'Título editado' }))
   })
 
   it('borra el proyecto propio tras confirmar', async () => {
@@ -137,7 +132,7 @@ describe('MyProjectPage', () => {
     mockedGetCurrentUser.mockResolvedValueOnce(ME)
     mockedDelete.mockResolvedValueOnce(undefined)
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
     await screen.findByRole('heading', { name: 'Energía solar en el colegio' })
 
     await user.click(screen.getByRole('button', { name: 'Borrar' }))
@@ -146,7 +141,7 @@ describe('MyProjectPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sí, borrar' }))
 
     await waitFor(() => {
-      expect(mockedDelete).toHaveBeenCalledWith('token-ana', 1)
+      expect(mockedDelete).toHaveBeenCalledWith(1)
     })
     expect(await screen.findByText(/Todavía no perteneces a un proyecto/)).toBeInTheDocument()
   })
@@ -166,7 +161,7 @@ describe('MyProjectPage', () => {
     }
     mockedUploadDocument.mockResolvedValueOnce(uploaded)
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
     await screen.findByRole('heading', { name: 'Energía solar en el colegio' })
 
     const file = new File(['contenido'], 'informe.pdf', { type: 'application/pdf' })
@@ -174,7 +169,7 @@ describe('MyProjectPage', () => {
     await user.click(screen.getByRole('button', { name: 'Subir documento' }))
 
     expect(await screen.findByText('informe.pdf')).toBeInTheDocument()
-    expect(mockedUploadDocument).toHaveBeenCalledWith('token-ana', 1, file)
+    expect(mockedUploadDocument).toHaveBeenCalledWith(1, file)
   })
 
   it('borra un documento del proyecto propio', async () => {
@@ -193,7 +188,7 @@ describe('MyProjectPage', () => {
     ])
     mockedDeleteDocument.mockResolvedValueOnce(undefined)
 
-    render(<MyProjectPage token="token-ana" />)
+    render(<MyProjectPage />)
     await screen.findByText('informe.pdf')
 
     // "Borrar" tambien es el nombre del boton de borrar el proyecto entero
@@ -204,7 +199,7 @@ describe('MyProjectPage', () => {
     await user.click(within(documentList).getByRole('button', { name: 'Sí, borrar' }))
 
     await waitFor(() => {
-      expect(mockedDeleteDocument).toHaveBeenCalledWith('token-ana', 5)
+      expect(mockedDeleteDocument).toHaveBeenCalledWith(5)
     })
     expect(screen.queryByText('informe.pdf')).not.toBeInTheDocument()
   })

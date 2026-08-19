@@ -21,12 +21,7 @@ describe('LoginPage', () => {
 
   it('login exitoso sin cambio de clave pendiente llama a onAuthenticated', async () => {
     const user = userEvent.setup()
-    mockedLogin.mockResolvedValueOnce({
-      access_token: 'access-1',
-      refresh_token: 'refresh-1',
-      token_type: 'bearer',
-      must_change_password: false,
-    })
+    mockedLogin.mockResolvedValueOnce({ must_change_password: false })
     const onAuthenticated = vi.fn()
 
     render(<LoginPage onAuthenticated={onAuthenticated} />)
@@ -35,7 +30,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     await waitFor(() => {
-      expect(onAuthenticated).toHaveBeenCalledWith('access-1', 'refresh-1')
+      expect(onAuthenticated).toHaveBeenCalledOnce()
     })
     expect(mockedLogin).toHaveBeenCalledWith('juan', 'claveSegura123')
   })
@@ -58,12 +53,7 @@ describe('LoginPage', () => {
 
   it('login con clave temporal pasa al panel de nueva contraseña', async () => {
     const user = userEvent.setup()
-    mockedLogin.mockResolvedValueOnce({
-      access_token: 'access-1',
-      refresh_token: 'refresh-1',
-      token_type: 'bearer',
-      must_change_password: true,
-    })
+    mockedLogin.mockResolvedValueOnce({ must_change_password: true })
 
     render(<LoginPage onAuthenticated={vi.fn()} />)
     await user.type(screen.getByLabelText('Usuario'), 'juan')
@@ -82,12 +72,7 @@ describe('LoginPage', () => {
 
   it('reset con contraseñas que no coinciden muestra error sin llamar a la API', async () => {
     const user = userEvent.setup()
-    mockedLogin.mockResolvedValueOnce({
-      access_token: 'access-1',
-      refresh_token: 'refresh-1',
-      token_type: 'bearer',
-      must_change_password: true,
-    })
+    mockedLogin.mockResolvedValueOnce({ must_change_password: true })
 
     render(<LoginPage onAuthenticated={vi.fn()} />)
     await user.type(screen.getByLabelText('Usuario'), 'juan')
@@ -105,14 +90,9 @@ describe('LoginPage', () => {
     expect(mockedChangePassword).not.toHaveBeenCalled()
   })
 
-  it('reset exitoso llama a onAuthenticated con los tokens de la sesión', async () => {
+  it('reset exitoso llama a onAuthenticated', async () => {
     const user = userEvent.setup()
-    mockedLogin.mockResolvedValueOnce({
-      access_token: 'access-1',
-      refresh_token: 'refresh-1',
-      token_type: 'bearer',
-      must_change_password: true,
-    })
+    mockedLogin.mockResolvedValueOnce({ must_change_password: true })
     mockedChangePassword.mockResolvedValueOnce({ detail: 'Contraseña actualizada' })
     const onAuthenticated = vi.fn()
 
@@ -129,10 +109,10 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
 
     await waitFor(() => {
-      expect(onAuthenticated).toHaveBeenCalledWith('access-1', 'refresh-1')
+      expect(onAuthenticated).toHaveBeenCalledOnce()
     })
     // La contraseña temporal (ya escrita en el paso de login) es la que se
     // reusa como current_password - no se le vuelve a pedir al usuario.
-    expect(mockedChangePassword).toHaveBeenCalledWith('access-1', 'claveTemporal', 'claveNueva123')
+    expect(mockedChangePassword).toHaveBeenCalledWith('claveTemporal', 'claveNueva123')
   })
 })

@@ -27,7 +27,7 @@ def _make_user(db_session, school, *, username="estudiante", password="claveSegu
     return user
 
 
-def test_login_with_correct_credentials_returns_tokens(client, db_session):
+def test_login_with_correct_credentials_sets_auth_cookies(client, db_session):
     school, _ = _make_school_year(db_session)
     _make_user(db_session, school, username="juan", password="claveSegura123")
 
@@ -37,10 +37,12 @@ def test_login_with_correct_credentials_returns_tokens(client, db_session):
     )
 
     assert response.status_code == 200
-    body = response.json()
-    assert "access_token" in body
-    assert "refresh_token" in body
-    assert body["must_change_password"] is False
+    # Los tokens ya no viajan en el body - viajan como cookies httpOnly.
+    assert "access_token" not in response.json()
+    assert "refresh_token" not in response.json()
+    assert response.json()["must_change_password"] is False
+    assert "access_token" in response.cookies
+    assert "refresh_token" in response.cookies
 
 
 def test_login_with_nonexistent_user_returns_generic_401(client, db_session):
@@ -68,19 +70,26 @@ def test_login_with_wrong_password_returns_same_generic_401(client, db_session):
     assert response.json()["code"] == "invalid_credentials"
 
 
-def test_refresh_with_valid_refresh_token_returns_new_access_token(client, db_session):
+def test_refresh_with_valid_refresh_token_sets_new_access_cookie(client, db_session):
     school, _ = _make_school_year(db_session)
     user = _make_user(db_session, school, username="juan")
 
     refresh_token = create_refresh_token(user_id=user.id)
-    response = client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
+    response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": refresh_token})
 
     assert response.status_code == 200
-    assert "access_token" in response.json()
+    assert "access_token" in response.cookies
+
+
+def test_refresh_without_cookie_returns_401(client, db_session):
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "invalid_refresh_token"
 
 
 def test_refresh_with_garbage_token_returns_401(client, db_session):
-    response = client.post("/api/v1/auth/refresh", json={"refresh_token": "esto-no-es-un-jwt"})
+    response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": "esto-no-es-un-jwt"})
 
     assert response.status_code == 401
     assert response.json()["code"] == "invalid_refresh_token"
@@ -94,7 +103,7 @@ def test_refresh_rejects_an_access_token_used_as_refresh_token(client, db_sessio
     # de refresh exige "type": "refresh", asi que esto tiene que fallar
     # aunque la firma del JWT sea perfectamente valida.
     access_token = create_access_token(user_id=user.id)
-    response = client.post("/api/v1/auth/refresh", json={"refresh_token": access_token})
+    response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": access_token})
 
     assert response.status_code == 401
     assert response.json()["code"] == "invalid_refresh_token"
@@ -106,10 +115,15 @@ def test_refresh_rejects_an_access_token_used_as_refresh_token(client, db_sessio
 # que un solo endpoint alcanza para probar las dos dependencias.
 
 
-def test_garbage_bearer_token_is_rejected(client, db_session):
-    response = client.get(
-        "/api/v1/users/me", headers={"Authorization": "Bearer esto-no-es-un-jwt"}
-    )
+def test_garbage_access_cookie_is_rejected(client, db_session):
+    response = client.get("/api/v1/users/me", cookies={"access_token": "esto-no-es-un-jwt"})
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "invalid_token"
+
+
+def test_missing_access_cookie_is_rejected(client, db_session):
+    response = client.get("/api/v1/users/me")
 
     assert response.status_code == 401
     assert response.json()["code"] == "invalid_token"
@@ -126,7 +140,7 @@ def test_deleted_user_with_still_valid_token_is_rejected(client, db_session):
     db_session.delete(user)
     db_session.commit()
 
-    response = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/users/me", cookies={"access_token": token})
 
     assert response.status_code == 401
     assert response.json()["code"] == "invalid_token"
@@ -137,7 +151,7 @@ def test_user_with_pending_password_change_is_blocked_from_other_endpoints(clien
     user = _make_user(db_session, school, username="juan", must_change_password=True)
     token = create_access_token(user_id=user.id)
 
-    response = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/users/me", cookies={"access_token": token})
 
     assert response.status_code == 403
     assert response.json()["code"] == "password_change_required"
@@ -151,7 +165,7 @@ def test_change_password_with_correct_current_password_updates_hash_and_flag(cli
     response = client.post(
         "/api/v1/auth/change-password",
         json={"current_password": "claveVieja123", "new_password": "claveNueva456"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 200
@@ -174,7 +188,7 @@ def test_change_password_with_wrong_current_password_returns_401(client, db_sess
     response = client.post(
         "/api/v1/auth/change-password",
         json={"current_password": "claveIncorrecta", "new_password": "claveNueva456"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 401

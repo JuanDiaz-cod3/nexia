@@ -10,7 +10,7 @@ import './AuthLayout.css'
 type Step = 'login' | 'reset'
 
 interface LoginPageProps {
-  onAuthenticated: (token: string, refreshToken: string) => void
+  onAuthenticated: () => void
 }
 
 export function LoginPage({ onAuthenticated }: LoginPageProps) {
@@ -19,8 +19,6 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
   const [password, setPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [token, setToken] = useState<string | null>(null)
-  const [refreshToken, setRefreshToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const resetHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -42,13 +40,13 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
     setError(null)
     setLoading(true)
     try {
+      // login() ya dejo la cookie de sesion puesta (Set-Cookie httpOnly) -
+      // no hay ningun token que guardar aca, solo decidir a donde ir.
       const result = await login(username, password)
-      setToken(result.access_token)
-      setRefreshToken(result.refresh_token)
       if (result.must_change_password) {
         setStep('reset')
       } else {
-        onAuthenticated(result.access_token, result.refresh_token)
+        onAuthenticated()
       }
     } catch (err) {
       // ApiError trae el mensaje real del backend (usuario/clave invalidos,
@@ -67,16 +65,15 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
       setError('Las contraseñas no coinciden.')
       return
     }
-    if (!token || !refreshToken) return
-
     setLoading(true)
     try {
       // Reusamos "password" (la clave temporal ya escrita en el paso de
       // login) como current_password - el backend la sigue exigiendo por
       // seguridad, pero no hace falta pedirsela de nuevo: ya la tenemos
-      // en memoria de este mismo flujo.
-      await changePassword(token, password, newPassword)
-      onAuthenticated(token, refreshToken)
+      // en memoria de este mismo flujo. La cookie de sesion de login ya
+      // esta puesta, asi que changePassword se autentica solo con ella.
+      await changePassword(password, newPassword)
+      onAuthenticated()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
     } finally {
