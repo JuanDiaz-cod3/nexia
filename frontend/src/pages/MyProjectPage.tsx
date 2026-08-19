@@ -50,6 +50,7 @@ export function MyProjectPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -115,6 +116,10 @@ export function MyProjectPage() {
   async function handleCreate(event: FormEvent) {
     event.preventDefault()
     setFormError(null)
+    if (!title.trim()) {
+      setFormError('El título es obligatorio.')
+      return
+    }
     setFormLoading(true)
     try {
       const project = await createProject({
@@ -134,6 +139,10 @@ export function MyProjectPage() {
     event.preventDefault()
     if (!myProject) return
     setEditError(null)
+    if (!editTitle.trim()) {
+      setEditError('El título es obligatorio.')
+      return
+    }
     setEditLoading(true)
     try {
       const updated = await updateProject(myProject.id, {
@@ -163,6 +172,7 @@ export function MyProjectPage() {
       const document = await uploadDocument(myProject.id, file)
       setDocuments((prev) => [document, ...prev])
       input.value = ''
+      setSelectedFileName(null)
     } catch (err) {
       setUploadError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
     } finally {
@@ -223,7 +233,7 @@ export function MyProjectPage() {
           Todavía no perteneces a un proyecto este año académico. Crea el tuyo para empezar.
         </p>
         <Card className="my-project-form-card">
-          <form onSubmit={handleCreate} className="my-project-form">
+          <form onSubmit={handleCreate} className="my-project-form" noValidate>
             <Input
               label="Título"
               value={title}
@@ -261,7 +271,7 @@ export function MyProjectPage() {
     return (
       <div className="my-project-page">
         <Card className="my-project-form-card">
-          <form onSubmit={handleUpdate} className="my-project-form">
+          <form onSubmit={handleUpdate} className="my-project-form" noValidate>
             <Input
               label="Título"
               value={editTitle}
@@ -360,12 +370,22 @@ export function MyProjectPage() {
             deletingId={deletingDocumentId}
           />
           <form className="my-project-upload-form" onSubmit={handleUpload}>
-            <input
-              type="file"
-              name="file"
-              accept={ALLOWED_DOCUMENT_EXTENSIONS}
-              aria-label="Elegir documento para subir"
-            />
+            <div className="file-input-wrap">
+              <input
+                id="my-project-file-input"
+                type="file"
+                name="file"
+                accept={ALLOWED_DOCUMENT_EXTENSIONS}
+                className="file-input-native"
+                onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? null)}
+              />
+              <label htmlFor="my-project-file-input" className="button button--secondary file-input-label">
+                Elegir archivo
+              </label>
+              <span className="file-input-filename">
+                {selectedFileName ?? 'Ningún archivo seleccionado'}
+              </span>
+            </div>
             <Button type="submit" variant="secondary" disabled={uploading}>
               {uploading ? 'Subiendo…' : 'Subir documento'}
             </Button>

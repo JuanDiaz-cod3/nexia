@@ -73,7 +73,7 @@
 
 .app-user-meta {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -89,6 +89,17 @@
 }
 
 .app-logout-btn.button--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-login-btn.button--secondary {
+  width: 100%;
+  color: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: transparent;
+}
+
+.app-login-btn.button--secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -151,7 +162,7 @@
 
 .app-brand-sub {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.03em;
   line-height: 1.5;
   text-transform: uppercase;
@@ -209,7 +220,7 @@
 
 .app-nav-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.4);

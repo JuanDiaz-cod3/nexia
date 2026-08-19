@@ -180,6 +180,18 @@ export function AppShell({
             </Button>
           </div>
         )}
+
+        {/* Sin esto, un visitante sin sesion no tiene ninguna forma visible
+            de llegar al login - antes solo se llegaba de rebote, pinchando
+            un item de nav protegido ("Mi Proyecto"). Reutiliza esa misma
+            navegacion protegida en vez de agregar una ruta nueva. */}
+        {!isAuthenticated && (
+          <div className="app-sidebar-footer">
+            <Button variant="secondary" onClick={() => handleNavigate('my-project')} className="app-login-btn">
+              Iniciar sesión
+            </Button>
+          </div>
+        )}
       </aside>
 
       <div className="app-content">
