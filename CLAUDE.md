@@ -70,13 +70,21 @@ teacher, judge, student) → `projects` (con `advisor_id` FK a users, `academic_
 
 **Secciones y grupos (11°A/B/C):** `sections` (school_id, academic_year_id, name — ej. "11°A";
 se crea sola la primera vez que un admin la usa, sin pantalla de gestión aparte todavía) es el
-salón completo, distinto de un "grupo" de proyecto (2-4 estudiantes). `student_groups`
-(school_id, academic_year_id, section_id) + `student_group_members` (join, con la misma regla
-de "un estudiante por año académico" que `project_members`) existen para que el admin pueda
-pre-crear cuentas de estudiantes agrupadas ANTES de que exista un proyecto real — cuando uno de
-ellos crea su proyecto (`POST /projects`), el backend agrega automáticamente al resto del grupo
-como integrantes del mismo proyecto. `projects.section_id` se copia del creador en ese momento
-(denormalizado, mismo patrón que `school_id`/`academic_year_id` en `projects`).
+salón completo, distinto de un "grupo" de proyecto (2-4 estudiantes). Un grupo de proyecto
+**puede mezclar integrantes de secciones distintas** — es una decisión de negocio explícita,
+no una laguna: cada estudiante tiene su propia `section_id` en `users` (fuente de verdad real),
+y `student_groups.section_id` (school_id, academic_year_id, section_id, NOT NULL) es solo una
+"sección de referencia" — la del primer estudiante de la lista al crear el grupo — que organiza
+la navegación del admin (`GET /admin/student-groups?section_id=` filtra "grupos con algún
+integrante en esa sección", no "grupos cuya sección de referencia es esa"; el label "Grupo N"
+también se basa en ella) pero no restringe a los demás integrantes. `student_group_members`
+(join, con la misma regla de "un estudiante por año académico" que `project_members`) existe
+para que el admin pueda pre-crear cuentas de estudiantes agrupadas ANTES de que exista un
+proyecto real — cuando uno de ellos crea su proyecto (`POST /projects`), el backend agrega
+automáticamente al resto del grupo como integrantes del mismo proyecto, sin importar su
+sección. `projects.section_id` se copia de la sección individual de quien crea el proyecto en
+ese momento (denormalizado, mismo patrón que `school_id`/`academic_year_id` en `projects`) —
+es informativo sobre el creador puntual, no representa a todo el equipo si el grupo es mixto.
 
 **Sustentación y evaluación** (ejercicio conceptual, no comprometido como parte del plan de
 InnovaLab — ver nota abajo): `defense_sessions` (date, time, location) ← `session_judges`
