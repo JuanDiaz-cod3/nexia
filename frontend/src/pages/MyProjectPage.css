@@ -125,6 +125,39 @@
   margin-top: var(--space-sm);
 }
 
+.file-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* El input real sigue siendo el elemento interactivo (foco, teclado,
+   lector de pantalla) - solo se oculta visualmente con la tecnica sr-only,
+   nunca display:none, para no perderlo del tab order. La etiqueta de abajo
+   reutiliza las clases .button/.button--secondary para que se vea igual
+   que cualquier otro boton secundario en vez del selector nativo del SO. */
+.file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-input-wrap:focus-within .file-input-label {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.file-input-filename {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .my-project-upload-hint {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);

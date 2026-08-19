@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
+import { Seal } from '../components/Seal'
 import { Spinner } from '../components/Spinner'
 import { DocumentList } from '../components/DocumentList'
 import { listProjects, updateProject, deleteProject, type Project } from '../api/projects'
@@ -100,6 +101,10 @@ export function ProjectsPage({ isAdmin }: ProjectsPageProps) {
   async function handleUpdate(event: FormEvent, projectId: number) {
     event.preventDefault()
     setEditError(null)
+    if (!editTitle.trim()) {
+      setEditError('El título es obligatorio.')
+      return
+    }
     setEditLoading(true)
     try {
       const updated = await updateProject(projectId, {
@@ -172,7 +177,11 @@ export function ProjectsPage({ isAdmin }: ProjectsPageProps) {
             if (isAdmin && editingId === project.id) {
               return (
                 <Card key={project.id} className="project-card" ref={editCardRef} tabIndex={-1}>
-                  <form className="project-edit-form" onSubmit={(event) => handleUpdate(event, project.id)}>
+                  <form
+                    className="project-edit-form"
+                    onSubmit={(event) => handleUpdate(event, project.id)}
+                    noValidate
+                  >
                     <h3 className="project-edit-form-title">Editando: {project.title}</h3>
                     <Input
                       label="Título"
@@ -219,7 +228,11 @@ export function ProjectsPage({ isAdmin }: ProjectsPageProps) {
                 <p className="project-members">
                   {project.members.map((member) => member.full_name).join(', ')}
                 </p>
-                <span className="project-status">{project.status}</span>
+                {project.status === 'published' ? (
+                  <Seal className="project-card-seal" />
+                ) : (
+                  <span className="project-status">{project.status}</span>
+                )}
 
                 <div className="project-documents">
                   <DocumentList

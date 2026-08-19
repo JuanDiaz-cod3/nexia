@@ -165,7 +165,7 @@ describe('MyProjectPage', () => {
     await screen.findByRole('heading', { name: 'Energía solar en el colegio' })
 
     const file = new File(['contenido'], 'informe.pdf', { type: 'application/pdf' })
-    await user.upload(screen.getByLabelText('Elegir documento para subir'), file)
+    await user.upload(screen.getByLabelText('Elegir archivo'), file)
     await user.click(screen.getByRole('button', { name: 'Subir documento' }))
 
     expect(await screen.findByText('informe.pdf')).toBeInTheDocument()

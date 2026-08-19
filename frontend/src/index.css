@@ -42,6 +42,7 @@
   --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-base: 16px;
   --font-size-lg: 20px;
