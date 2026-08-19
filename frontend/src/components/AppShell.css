@@ -23,6 +23,28 @@
   border-right: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--color-text-on-primary);
   padding: var(--space-lg) var(--space-md);
+  /* El scrollbar global (index.css) asume fondo claro - navy sobre navy
+     seria invisible aca, asi que se pisa con tonos blancos translucidos,
+     mismo lenguaje que ya usan .app-nav-item/.app-brand-sub. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.app-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-sidebar::-webkit-scrollbar-thumb {
+  /* Mismo ajuste que el scrollbar global (index.css): mas opaco y menos
+     "aire" alrededor (2px, no 3px) para que se note mas - antes quedaba
+     demasiado sutil sobre el navy glass. */
+  background-color: rgba(255, 255, 255, 0.45);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.app-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.65);
 }
 
 /* margin-top: auto en el flex column de .app-sidebar la empuja al fondo,
@@ -71,9 +93,54 @@
 }
 
 .app-brand {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: var(--space-sm) var(--space-sm) var(--space-xl);
+}
+
+.app-brand-logo {
+  /* El SVG tiene el icono circular + wordmark lado a lado (viewBox
+     640x160) - a este ancho el wordmark queda legible sin agrandar
+     demasiado el icono. */
+  width: 160px;
+  height: auto;
+  margin-bottom: var(--space-sm);
+}
+
+/* Oculto por default (solo tiene sentido cuando la sidebar es un drawer,
+   ver @media abajo) - display:none, no solo visualmente oculto, para que
+   no quede en el orden de tabulacion en desktop. */
+.app-sidebar-close {
+  display: none;
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.app-sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.app-sidebar-close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.app-sidebar-close-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .app-brand-name {
@@ -100,7 +167,11 @@
 .app-nav-item {
   display: block;
   width: 100%;
-  padding: var(--space-sm) var(--space-sm);
+  /* 12px verticales (no --space-sm/8px) para acercarse a los 44px de alto
+     minimos recomendados para touch targets - con font-size-sm (14px) y su
+     line-height, 8px se quedaba en ~36px (hallazgo de la ronda de
+     impeccable). */
+  padding: 12px var(--space-sm);
   border-radius: var(--radius);
   font-size: var(--font-size-sm);
   color: rgba(255, 255, 255, 0.82);
@@ -155,7 +226,7 @@
 .app-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-sm);
   padding: var(--space-lg) var(--space-xl);
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
@@ -163,25 +234,155 @@
   border-bottom: 1px solid var(--glass-border);
 }
 
+/* gap + orden natural del DOM ya separan el boton del h1 - sin esto el
+   h1 quedaria pegado al toggle en vez de tener su propio espacio. */
+.app-topbar h1 {
+  flex: 1;
+}
+
+/* Oculto por default, igual que .app-sidebar-close - solo aparece en
+   mobile (ver @media). Vive en el topbar claro (--glass-surface), no en
+   la sidebar navy, asi que usa el color de texto oscuro de la app, no el
+   blanco translucido del resto del chrome de la sidebar. */
+.app-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.app-nav-toggle:hover {
+  background: var(--color-background);
+}
+
+.app-nav-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Tres barras que se funden en una X al abrir - un solo gesto de motion,
+   no un icono estatico que cambia de golpe. */
+.app-nav-toggle-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 18px;
+  height: 14px;
+}
+
+.app-nav-toggle-bar {
+  display: block;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.app-nav-toggle-icon--open .app-nav-toggle-bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.app-nav-toggle-icon--open .app-nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.app-nav-toggle-icon--open .app-nav-toggle-bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Oculto por default: en desktop la sidebar nunca es un overlay, no hay
+   nada que oscurecer detras. display:none (no solo opacity/visibility) para
+   que ni siquiera exista como capa clickeable fuera de mobile. */
+.app-sidebar-backdrop {
+  display: none;
+}
+
 .app-main {
   flex: 1;
 }
 
-/* Por debajo de 640px la sidebar fija no cabe - se apila arriba en flujo
-   normal, igual que ya se hace con el panel lateral del login. */
+/* Por debajo de 640px la sidebar fija no cabe. Antes se apilaba entera
+   arriba del contenido (hallazgo de la ronda de impeccable: en un telefono
+   habia que scrollear ~10 items de nav, la mayoria deshabilitados, antes de
+   ver una sola pantalla real) - ahora es un drawer que se abre con el
+   boton de hamburguesa del topbar, igual que cualquier app movil. */
 @media (max-width: 640px) {
-  .app-shell {
-    flex-direction: column;
+  .app-nav-toggle,
+  .app-sidebar-close {
+    display: inline-flex;
   }
 
   .app-sidebar {
-    width: 100%;
-    position: static;
-    height: auto;
-    overflow-y: visible;
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(280px, 85vw);
+    height: 100vh;
+    transform: translateX(-100%);
+    /* visibility (no solo transform) saca el drawer cerrado del orden de
+       tabulacion y de la lectura de un screen reader por completo - sin
+       esto, un usuario de teclado podia seguir tabulando por un menu
+       invisible fuera de pantalla. El delay en la transicion de
+       visibility hace que el cambio ocurra recien al terminar de
+       deslizarse (al cerrar) o de inmediato (al abrir). */
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    z-index: 30;
+  }
+
+  .app-sidebar--open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.25s ease, visibility 0s linear 0s;
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.25);
+  }
+
+  .app-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+    z-index: 29;
+  }
+
+  .app-sidebar-backdrop--visible {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease, visibility 0s linear 0s;
   }
 
   .app-topbar {
     padding: var(--space-md);
+  }
+}
+
+/* Red de seguridad: si el drawer quedo abierto y la ventana crece de vuelta
+   a desktop (resize, no solo carga inicial), que no se quede un backdrop
+   fantasma tapando la pantalla - en desktop el backdrop nunca debe
+   interceptar clicks, sin importar el estado de React. */
+@media (min-width: 641px) {
+  .app-sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+/* El cambio de estado (abierto/cerrado) tiene que seguir pasando - solo se
+   saca la animacion del medio, no el resultado. */
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-sidebar-backdrop,
+  .app-nav-toggle-bar {
+    transition-duration: 0.01ms;
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
+import { Spinner } from '../components/Spinner'
 import {
   listProjects,
   createProject,
@@ -146,7 +147,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
   if (loading) {
     return (
       <div className="my-project-page">
-        <p>Cargando…</p>
+        <Spinner label="Cargando…" />
       </div>
     )
   }
@@ -154,7 +155,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
   if (error) {
     return (
       <div className="my-project-page">
-        <p className="my-project-error">{error}</p>
+        <p className="my-project-error" role="alert">{error}</p>
       </div>
     )
   }
@@ -190,7 +191,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
                 onChange={(event) => setSummary(event.target.value)}
               />
             </div>
-            {formError && <p className="my-project-error">{formError}</p>}
+            {formError && <p className="my-project-error" role="alert">{formError}</p>}
             <Button type="submit" className="my-project-form-submit" disabled={formLoading}>
               Crear proyecto
             </Button>
@@ -228,7 +229,7 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
                 onChange={(event) => setEditSummary(event.target.value)}
               />
             </div>
-            {editError && <p className="my-project-error">{editError}</p>}
+            {editError && <p className="my-project-error" role="alert">{editError}</p>}
             <div className="my-project-form-actions">
               <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
                 Cancelar
@@ -260,8 +261,8 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
 
         {confirmingDelete && (
           <div className="my-project-delete-confirm">
-            <p>¿Seguro que quieres borrar este proyecto? Esta acción no se puede deshacer.</p>
-            {deleteError && <p className="my-project-error">{deleteError}</p>}
+            <p role="alert">¿Seguro que quieres borrar este proyecto? Esta acción no se puede deshacer.</p>
+            {deleteError && <p className="my-project-error" role="alert">{deleteError}</p>}
             <div className="my-project-form-actions">
               <Button
                 type="button"

@@ -1,7 +1,10 @@
 .button {
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
-  padding: var(--space-sm) var(--space-md);
+  /* 10px verticales (no --space-sm/8px): con font-size-base (16px) y su
+     line-height, 8px daba ~40px de alto - un poco corto del minimo de 44px
+     recomendado para touch targets (hallazgo de la ronda de impeccable). */
+  padding: 10px var(--space-md);
   border-radius: var(--radius);
   border: 1px solid transparent;
   cursor: pointer;

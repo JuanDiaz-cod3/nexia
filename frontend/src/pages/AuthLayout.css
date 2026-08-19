@@ -202,19 +202,8 @@
   margin: 0;
 }
 
-/* Oculta visualmente pero deja disponible para lectores de pantalla -
-   usado por el aria-live que anuncia el cambio de paso login/reset. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+/* .sr-only vive en index.css (utilidad global, la usan tambien AppShell y
+   cualquier otra pantalla que la necesite) - ver ahi. */
 
 /* El h1 del panel de reset recibe foco por script (no por click) al
    entrar al paso obligatorio - necesita su propio indicador visible. */

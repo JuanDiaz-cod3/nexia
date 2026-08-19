@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/Button'
 import { Seal } from '../components/Seal'
+import { Spinner } from '../components/Spinner'
 import { listProjects, type Project } from '../api/projects'
 import { ApiError } from '../api/client'
 import './HomePage.css'
@@ -136,7 +137,7 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
 
           <h2 className="home-section-title">Proyectos recientes</h2>
           {loading ? (
-            <p>Cargando…</p>
+            <Spinner label="Cargando proyectos recientes…" size="small" />
           ) : recentProjects.length === 0 ? (
             <p className="glass-panel home-empty">
               Todavía no hay proyectos registrados. Cuando alguien cree el primero, aparece acá.

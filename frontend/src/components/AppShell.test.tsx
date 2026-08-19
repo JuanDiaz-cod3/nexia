@@ -125,4 +125,121 @@ describe('AppShell', () => {
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
     expect(onLogout).toHaveBeenCalledOnce()
   })
+
+  it('el botón de hamburguesa abre el drawer, y "Cerrar menú" lo cierra', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <AppShell
+        title="Inicio"
+        activePage="home"
+        isAuthenticated={false}
+        isAdmin={false}
+        currentUser={null}
+        onNavigate={vi.fn()}
+        onLogout={vi.fn()}
+      >
+        <p>contenido</p>
+      </AppShell>,
+    )
+
+    const toggle = screen.getByRole('button', { name: 'Abrir navegación' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(toggle)
+    expect(screen.getByRole('button', { name: 'Cerrar navegación' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar menú' }))
+    expect(screen.getByRole('button', { name: 'Abrir navegación' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
+  it('clickear un item de navegación también cierra el drawer', async () => {
+    const user = userEvent.setup()
+    const onNavigate = vi.fn()
+
+    render(
+      <AppShell
+        title="Inicio"
+        activePage="home"
+        isAuthenticated={false}
+        isAdmin={false}
+        currentUser={null}
+        onNavigate={onNavigate}
+        onLogout={vi.fn()}
+      >
+        <p>contenido</p>
+      </AppShell>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir navegación' }))
+    await user.click(screen.getByRole('button', { name: 'Proyectos' }))
+
+    expect(onNavigate).toHaveBeenCalledWith('projects')
+    expect(screen.getByRole('button', { name: 'Abrir navegación' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
+  it('Escape cierra el drawer', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <AppShell
+        title="Inicio"
+        activePage="home"
+        isAuthenticated={false}
+        isAdmin={false}
+        currentUser={null}
+        onNavigate={vi.fn()}
+        onLogout={vi.fn()}
+      >
+        <p>contenido</p>
+      </AppShell>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir navegación' }))
+    await user.keyboard('{Escape}')
+
+    expect(screen.getByRole('button', { name: 'Abrir navegación' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
+  it('clickear el backdrop cierra el drawer', async () => {
+    const user = userEvent.setup()
+
+    const { container } = render(
+      <AppShell
+        title="Inicio"
+        activePage="home"
+        isAuthenticated={false}
+        isAdmin={false}
+        currentUser={null}
+        onNavigate={vi.fn()}
+        onLogout={vi.fn()}
+      >
+        <p>contenido</p>
+      </AppShell>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir navegación' }))
+
+    // El backdrop es aria-hidden (decorativo, solo junta clicks "afuera"
+    // del drawer) - no tiene rol accesible que consultar por nombre.
+    const backdrop = container.querySelector('.app-sidebar-backdrop')!
+    await user.click(backdrop)
+
+    expect(screen.getByRole('button', { name: 'Abrir navegación' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
 })

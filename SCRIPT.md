@@ -178,8 +178,11 @@ draft → submitted → under_review → needs_revision → approved → defende
   test.
 - [ ] **Deploy real:** nada desplegado — Vercel/Render/Supabase decididos en el plan pero
   no ejecutados, todo sigue en local.
-- [ ] **Responsive y accesibilidad** de `ProjectsPage`, `MyProjectPage` y `AppShell` (el
-  login ya se trabajó explícitamente; estas pantallas, no).
+- [x] **Responsive y accesibilidad** de `ProjectsPage`/`MyProjectPage`/`AppShell`: audit
+  (13/20) + `harden` (contraste, `role="alert"`, `aria-current`) + `adapt` (sidebar mobile
+  ahora es un drawer real con hamburguesa, touch targets a 44px, breakpoint que le
+  faltaba a `MyProjectPage.css`) — ver `PROGRESS.md`. Sin verificar visualmente en
+  navegador (sin conector de Chrome esta sesión); quedan 2 P3 de polish sin tocar.
 - [ ] **Ronda de `impeccable`** sobre el resto de la app — planeada para cuando se cierren
   los ítems anteriores.
 

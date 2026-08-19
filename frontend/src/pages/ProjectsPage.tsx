@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
+import { Spinner } from '../components/Spinner'
 import { listProjects, updateProject, deleteProject, type Project } from '../api/projects'
 import { ApiError } from '../api/client'
 import './ProjectsPage.css'
@@ -116,7 +117,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
   if (loading) {
     return (
       <div className="projects-page">
-        <p>Cargando proyectos…</p>
+        <Spinner label="Cargando proyectos…" />
       </div>
     )
   }
@@ -124,7 +125,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
   if (error) {
     return (
       <div className="projects-page">
-        <p className="projects-error">{error}</p>
+        <p className="projects-error" role="alert">{error}</p>
       </div>
     )
   }
@@ -164,7 +165,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
                         onChange={(event) => setEditSummary(event.target.value)}
                       />
                     </div>
-                    {editError && <p className="projects-error">{editError}</p>}
+                    {editError && <p className="projects-error" role="alert">{editError}</p>}
                     <div className="project-edit-form-actions">
                       <Button type="button" variant="secondary" onClick={() => setEditingId(null)}>
                         Cancelar
@@ -193,7 +194,7 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
                     {confirmingDeleteId === project.id ? (
                       <div className="project-delete-confirm">
                         <p role="alert">¿Borrar este proyecto? Esta acción no se puede deshacer.</p>
-                        {deleteError && <p className="projects-error">{deleteError}</p>}
+                        {deleteError && <p className="projects-error" role="alert">{deleteError}</p>}
                         <div className="project-edit-form-actions">
                           <Button
                             type="button"

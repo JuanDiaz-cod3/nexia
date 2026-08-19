@@ -264,6 +264,80 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   nuevos — cubren stats/proyectos recientes, el sello solo en `published`, vacío, error,
   y el botón "Entrar"/"Explorar proyectos". La rotación de frases (con `setInterval`) se
   dejó afuera a propósito, bajo valor para el esfuerzo de fake timers que requeriría.
+- **Ronda de `impeccable audit` + `harden` sobre `ProjectsPage`/`MyProjectPage`/`AppShell`:**
+  primera vez que estas tres pantallas pasan por el skill (login y Landing/Inicio/admin ya
+  la habían tenido). Score 13/20 (Aceptable). Hallazgo principal: `MyProjectPage.css` usaba
+  `var(--color-accent)` crudo en `.my-project-category`/`.my-project-status`
+  (~2.2:1/~1.85:1 de contraste) en vez de `var(--color-accent-text)` — el mismo bug de
+  contraste que ya se había diagnosticado y arreglado en `ProjectsPage.css`, nunca se
+  propagó al archivo hermano. Corregido, junto con `role="alert"` faltante en los mensajes
+  de error/confirmación de ambas páginas (6 puntos entre las dos) y `aria-current="page"`
+  en los botones de navegación de `AppShell`. Detector mecánico limpio antes y después.
+  `/impeccable adapt` (P1+P2 restantes) se hizo en la misma sesión:
+  - **`AppShell` pasa de "sidebar apilada" a drawer real en mobile:** botón de
+    hamburguesa (3 barras que se funden en X, no un glifo unicode) en el topbar, el
+    `<aside>` se vuelve `position: fixed` fuera de pantalla (`transform` +
+    `visibility` con transition-delay, para sacarlo del orden de tabulación y de la
+    lectura de un lector de pantalla cuando está cerrado, no solo ocultarlo
+    visualmente), backdrop clickeable, botón "Cerrar menú" propio dentro del drawer
+    (nombre accesible distinto al del toggle, que también dice "Cerrar navegación"
+    cuando está abierto — dos controles con el mismo nombre habría sido confuso por
+    lector de pantalla). Cierra con Escape, con click en el backdrop, o al navegar
+    (`handleNavigate` envuelve `onNavigate` + cierre). Foco se mueve al drawer al
+    abrir y vuelve al botón toggle al cerrar. Respeta `prefers-reduced-motion`
+    (mantiene el cambio de estado, saca la animación).
+  - **Touch targets:** `.app-nav-item` (36px → ~44px) y el `.button` compartido
+    (40px → 44px) — este último toca toda la app, no solo las 3 pantallas auditadas.
+  - **`MyProjectPage.css` gana el breakpoint que le faltaba** (mismo patrón que
+    `ProjectsPage.css`/`AppShell.css`) y `flex-wrap` en el header/acciones del detalle,
+    que no lo tenían a diferencia de sus equivalentes en `ProjectsPage.css`.
+  - **`.sr-only` promovido de `AuthLayout.css` a `index.css`:** era una utilidad
+    genérica atrapada en el CSS de un solo flujo (login); `AppShell` la necesitaba y
+    no la tenía disponible.
+  - 9 tests nuevos en `AppShell.test.tsx` (43 frontend en total) cubriendo abrir/cerrar
+    por los tres caminos (toggle, botón X, Escape, backdrop) y que navegar cierra el
+    drawer. Detector mecánico y `tsc -b` limpios. **Sin verificar visualmente en
+    navegador todavía** — el conector de Chrome no estaba disponible esta sesión;
+    pendiente que alguien lo confirme a ojo (`npm run dev`, ventana angosta) antes de
+    darlo por completamente cerrado.
+  - Quedan los dos P3 de polish sin tocar: `aria-disabled` en un `<span>` no
+    interactivo (`/impeccable clarify`), y `#b91c1c` hardcodeado donde ya existe
+    `--color-danger` (`/impeccable layout`).
+- **Logo horizontal en el sidebar:** `AppShell` suma `innovalab_logo_horizontal_dark.svg`
+  (variante nueva, blanco/ámbar — el original tiene texto navy pensado para fondo claro,
+  invisible sobre el navy glass del sidebar). `alt=""` a propósito, el span de texto
+  "InnovaLab" que ya estaba abajo dice lo mismo.
+- **Spinner de carga (`Spinner.tsx`/`Spinner.css`, componente nuevo compartido):** Juan
+  armó el diseño (tres anillos concéntricos girando) y pidió ajustar colores/bugs.
+  Encontrados y corregidos: el `.container` original traía `width:100vw; height:100vh;
+  background:#000` (tapaba toda la pantalla en negro — parecía un ejemplo de loader de
+  página completa pegado tal cual, sin adaptar), un `body{padding:0;margin:0}` suelto en
+  `ProjectsPage.css` que no debía vivir ahí, colores fuera de paleta (verde azulado/
+  coral/violeta — `DESIGN.md` prohíbe un tercer color), y el texto de carga había
+  desaparecido (spinner puramente visual, sin nada para lectores de pantalla). Ahora:
+  colores de la paleta (navy/ámbar/navy-hover, sin tercer color), `role="status"` +
+  label en `.sr-only`, tamaño contenido dentro de la página (no viewport completo),
+  variante `size="small"` para espacios acotados, y respeta `prefers-reduced-motion`.
+  Usado en las 4 pantallas con mensaje de "Cargando...": `ProjectsPage`, `MyProjectPage`
+  (tamaño normal), `HomePage` y `AdminStudentsPage` (`small`).
+- **Segunda ronda sobre el `Spinner` — Juan mostró el label visible (no `.sr-only`) y
+  pidió revisión:** dos bugs reales encontrados. `nav-down: calc(...)` no es una
+  propiedad CSS valida (no existe) — el navegador la ignoraba en silencio, así que el
+  label quedaba sin offset vertical, superpuesto arriba de los anillos en vez de debajo
+  (esto probablemente explicaba el reporte de "Mi Proyecto sigue mostrando cargando, no
+  el spinning": el spinner sí se renderizaba, el texto lo tapaba). Corregido a `top:`.
+  También `color: var(--color-text-secondary)` — token inexistente (los que hay son
+  `--color-text`/`--color-text-muted`/`--color-text-on-primary`), corregido a
+  `--color-text-muted`.
+- **Favicon:** era el rayo default del scaffold de Vite (`public/favicon.svg`), nunca
+  reemplazado. Ahora es el sello circular navy/ámbar de la marca (sin depender de Google
+  Fonts para el texto "IL" — a ese tamaño no vale la pena el request extra, se usa una
+  fuente serif del sistema).
+- **Scrollbar temático (`index.css` + `AppShell.css`):** thumb navy sobre track claro en
+  el resto de la app, blanco translúcido sobre el navy glass del sidebar (donde el navy
+  normal seria invisible). Ajustado dos veces a pedido — más opaco y con menos padding
+  alrededor del thumb en ambas variantes, para que se note más. Token nuevo
+  `--color-primary-dark` (uso acotado, solo el scrollbar global).
 
 ## Qué falta — dentro del alcance de este corte
 
@@ -284,9 +358,9 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   hardcodeada en `create_admin.py`, puerto de la Postgres de test.
 - [ ] Deploy real: nada desplegado aún. Vercel/Render/Supabase están decididos como plan
   en `CLAUDE.md` pero no ejecutados — sigue corriendo todo en local.
-- [ ] Revisar responsive y accesibilidad de `ProjectsPage`, `MyProjectPage` y `AppShell`
-  (el login ya se trabajó explícitamente en el commit de fondo/responsive; las pantallas
-  nuevas, no).
+- [x] Responsive y accesibilidad de `ProjectsPage`, `MyProjectPage` y `AppShell` — audit
+  + `harden` + `adapt` del skill `impeccable` (ver arriba). Sin verificar visualmente en
+  navegador todavía (sin conector de Chrome en esa sesión); quedan 2 P3 de polish.
 - [ ] Ronda de `impeccable` sobre el resto de la app (más allá del login, que ya tuvo la
   suya) — planeado para cuando se cierren los demás ítems de esta lista, no antes.
 

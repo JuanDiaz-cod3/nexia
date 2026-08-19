@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
+import { Spinner } from '../components/Spinner'
 import {
   createStudentGroup,
   listSections,
@@ -512,7 +513,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
             {selectedSectionId !== null && (
               <div className="admin-students-group-picker">
                 {groupsLoading ? (
-                  <p>Cargando grupos…</p>
+                  <Spinner label="Cargando grupos…" size="small" />
                 ) : groupsInSection.length === 0 ? (
                   <p className="admin-students-empty">Todavía no hay grupos en esta sección.</p>
                 ) : (

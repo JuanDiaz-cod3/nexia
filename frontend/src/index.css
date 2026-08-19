@@ -5,6 +5,11 @@
      valor preciso. */
   --color-primary: #12294b;
   --color-primary-hover: #1a3763;
+  /* Version mas oscura de --color-primary, uso acotado (hoy solo el
+     scrollbar) - pedido explicito de que el navy normal se veia poco
+     notable ahi. No es un color nuevo, es el mismo matiz un escalon mas
+     oscuro. */
+  --color-primary-dark: #0d1d38;
   --color-accent: #e8a23a;
   --color-accent-bg: #fbebd2;
   /* Version oscurecida de --color-accent para texto/iconos SOBRE
@@ -125,3 +130,52 @@ h3 {
   color: var(--color-text);
   margin: 0;
 }
+
+/* Oculta visualmente pero deja disponible para lectores de pantalla.
+   Utilidad global (antes solo en AuthLayout.css, para el aria-live del
+   login) - se movio aca al necesitarla tambien AppShell. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Scrollbar con la paleta del sitio en vez de la gris generica del
+   navegador - una superficie que uno no "dibuja" pero que igual carga el
+   diseño (ver impeccable craft-floor). Firefox usa scrollbar-color/-width;
+   el resto (Chrome/Edge/Safari), los pseudo-elementos ::-webkit-*. Variante
+   oscura para el sidebar en AppShell.css, este estilo asume fondo claro. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-dark) var(--color-background);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  /* Mismo navy que el sidebar (--color-primary), pero un poco mas oscuro
+     y con menos "aire" alrededor (2px de padding, no 3px) - pedido
+     explicito: se veia poco notable con el primary normal. */
+  background-color: var(--color-primary-dark);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary);
+}
+

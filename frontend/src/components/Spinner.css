@@ -1,0 +1,98 @@
+.spinner-container {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: var(--space-xl) auto;
+}
+
+.spinner-box {
+  position: absolute;
+  inset: 0;
+  border-top: solid 3px var(--color-primary);
+  border-radius: 50%;
+  animation: spinner-rotate 2s infinite linear;
+}
+
+.spinner-box::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  border-top: solid 3px var(--color-accent);
+  border-radius: 50%;
+  animation: spinner-rotate 2s infinite linear;
+}
+
+.spinner-box::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  border-top: solid 3px var(--color-primary-hover);
+  border-radius: 50%;
+  animation: spinner-rotate 1s infinite linear;
+}
+
+/* Version chica, para espacios acotados (ej. el selector de grupos de
+   AdminStudentsPage) donde el tamaño de pagina completa se ve enorme. */
+.spinner-container--small {
+  width: 40px;
+  height: 40px;
+  margin: var(--space-md) auto;
+}
+
+.spinner-container--small .spinner-box,
+.spinner-container--small .spinner-box::before,
+.spinner-container--small .spinner-box::after {
+  border-top-width: 2px;
+}
+
+.spinner-container--small .spinner-box::before {
+  left: 4px;
+  top: 4px;
+  right: 4px;
+  bottom: 4px;
+}
+
+.spinner-container--small .spinner-box::after {
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+}
+
+@keyframes spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner-box,
+  .spinner-box::before,
+  .spinner-box::after {
+    animation: none;
+  }
+}
+
+.spinner-label {
+  position: absolute;
+  top: calc(100% + var(--space-md));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.spinner-container--small .spinner-label {
+  font-size: 0.8rem;
+}
