@@ -16,5 +16,9 @@ class Settings(BaseSettings):
     # Origen permitido para CORS: el frontend en desarrollo.
     frontend_url: str = "http://localhost:5173"
 
+    # Supabase Storage: documentos de proyectos (ver app/core/storage.py).
+    supabase_url: str
+    supabase_service_role_key: str
+
 
 settings = Settings()

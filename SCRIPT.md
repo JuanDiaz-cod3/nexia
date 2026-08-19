@@ -34,10 +34,13 @@ Es mi proyecto de aprendizaje de Ingeniería de Sistemas. Reglas que me impuse p
 - Roles activos: `admin` y `student`. (`teacher` y `judge` existen en la tabla `roles`
   pero sin flujo funcional todavía.)
 - Estudiantes crean/editan su propio proyecto y ven los proyectos de los demás.
-- Objetivo de este corte: demostrar el almacenamiento y visualización de proyectos. Nada más.
+- Estudiantes suben/borran documentos (PDF, Word, PowerPoint) de su propio proyecto;
+  cualquiera puede verlos y descargarlos sin login.
+- Objetivo de este corte: demostrar el almacenamiento y visualización de proyectos y sus
+  documentos. Nada más.
 
 **Explícitamente fuera de alcance ahora** (ver sección 8 para el detalle):
-- `documents`, `awards`.
+- `awards`.
 - Todo el bloque de sustentación/evaluación/jurados.
 - Roles `teacher`/`judge` funcionales.
 - Multi-tenancy real.
@@ -81,7 +84,13 @@ se asignan a la sesión, no al proyecto) — `evaluation_criteria` (cuelga de `a
 pesos cambian cada año) — `evaluations` (project_id, judge_id, criteria_id, score, comment)
 con `evaluation_audit` (quién, cuándo, valor anterior/nuevo).
 
-**Pendientes de modelar cuando lleguemos ahí:** `documents`, `awards`.
+**Documentos:** `documents` (`project_id` con `ondelete=CASCADE`, `file_name`, `file_type`,
+`size_bytes`, `storage_path` único generado con `secrets.token_hex` —no el nombre original—,
+`uploaded_by`, `uploaded_at`). Mismo criterio de permisos que editar el proyecto (integrante
+o admin sube/borra), descarga pública sin login. PDF/Word/PowerPoint, máximo 25MB. El
+navegador sube al backend (no directo a Supabase con URL firmada) — más simple de validar.
+
+**Pendientes de modelar cuando lleguemos ahí:** `awards`.
 
 ## 6. Reglas de negocio críticas
 
@@ -101,6 +110,8 @@ con `evaluation_audit` (quién, cuándo, valor anterior/nuevo).
 - **Proyectos públicos desde que existen:** `GET /projects` no requiere login (archivo
   abierto de investigación). Crear/editar/borrar el propio sí requiere autenticación.
   `publication_consent` queda en la tabla sin uso por ahora.
+- **Documentos de un proyecto:** mismo criterio que editar el proyecto (integrante o
+  admin sube/borra). Descarga pública, sin login. PDF/Word/PowerPoint, máximo 25MB.
 
 ## 7. Ciclo de vida de un proyecto
 
@@ -110,7 +121,7 @@ draft → submitted → under_review → needs_revision → approved → defende
 
 ## 8. Fuera de alcance — recordatorio de qué NO construir todavía
 
-- `documents` (archivos por proyecto), `awards` (resultados/menciones).
+- `awards` (resultados/menciones).
 - `defense_sessions`, `session_judges`, `evaluations`, `evaluation_criteria`,
   `evaluation_audit` — todo el flujo de sustentación/jurados.
 - Roles `teacher` y `judge` funcionales.
@@ -125,6 +136,9 @@ draft → submitted → under_review → needs_revision → approved → defende
 - [x] Endpoints: `POST /auth/login`, `POST /auth/refresh`, `POST /auth/change-password`,
   `GET /users/me`, `GET /projects`, `GET /projects/{id}`, `POST /projects`,
   `PATCH /projects/{id}`, `DELETE /projects/{id}`.
+- [x] Documentos: `GET/POST /projects/{id}/documents`, `DELETE /documents/{id}` — sube a
+  Supabase Storage vía `httpx` (PDF/Word/PowerPoint, máx 25MB). Probado en vivo de punta
+  a punta. Falta el frontend.
 - [x] Regla "un proyecto por año académico" enforced en DB (409 `already_in_project`).
 - [x] Rol `admin` con control total sobre proyectos (`deps.is_admin`).
 - [x] `GET /projects` y `GET /projects/{id}` públicos (sin login).

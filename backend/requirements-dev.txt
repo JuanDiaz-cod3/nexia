@@ -1,4 +1,5 @@
 -r requirements.txt
 
+# httpx ya viene de requirements.txt (lo usa app/core/storage.py en runtime,
+# no solo TestClient) - no hace falta repetirlo aca.
 pytest==9.0.3
-httpx==0.28.1

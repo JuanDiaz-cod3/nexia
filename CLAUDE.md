@@ -32,12 +32,14 @@ El alcance de esta fase es únicamente:
   la tabla `roles` pero todavía no tienen flujo funcional.
 - Los estudiantes pueden crear/editar su propio proyecto y ver los proyectos que ya existen
   (registrados por otros usando el mismo login).
+- Los estudiantes pueden subir/borrar documentos (PDF, Word, PowerPoint) de su propio
+  proyecto; cualquiera puede verlos y descargarlos sin necesidad de login.
 - El objetivo de este corte es demostrar el funcionamiento del almacenamiento y visualización
-  de proyectos, nada más.
+  de proyectos y sus documentos, nada más.
 
 **Explícitamente fuera de alcance en esta fase** (no implementar):
 
-- `documents`, `awards` — pendientes de modelar cuando lleguemos ahí.
+- `awards` — pendiente de modelar cuando lleguemos ahí.
 - `defense_sessions`, `session_judges`, `evaluations`, `evaluation_criteria`,
   `evaluation_audit`, y cualquier flujo de sustentación, evaluación o jurados — este bloque
   es una posible oportunidad de ampliación a futuro, cuya viabilidad habría que evaluar por
@@ -90,9 +92,18 @@ cambio (quién, cuándo, valor anterior/nuevo).
 > por si en el futuro se evalúa por separado la viabilidad de ampliar el alcance en esa
 > dirección.
 
+**Documentos:** `documents` (`project_id` FK a `projects`, `file_name`, `file_type`,
+`size_bytes`, `storage_path`, `uploaded_by` FK a `users`, `uploaded_at`) — archivos en
+Supabase Storage asociados a un proyecto. Mismo criterio de permisos que editar el
+proyecto: cualquier integrante puede subir/borrar, admin también sobre cualquier proyecto.
+Descarga pública, sin login (mismo criterio que `GET /projects` — el archivo de
+investigación es abierto). Tipos permitidos: PDF, Word (`.doc`/`.docx`), PowerPoint
+(`.ppt`/`.pptx`). Tamaño máximo 25MB por archivo. El navegador sube el archivo al backend
+(no directo a Supabase con URL firmada) — más simple de validar y depurar en este corte;
+se reevalúa si el volumen/tamaño lo justifica más adelante.
+
 **Pendientes de modelar cuando lleguemos ahí** (fuera de alcance en la fase actual, ver
-"Fase actual del desarrollo"): `documents` (archivos por proyecto), `awards`
-(resultados/menciones).
+"Fase actual del desarrollo"): `awards` (resultados/menciones).
 
 ## Reglas de negocio críticas
 
@@ -119,6 +130,9 @@ cambio (quién, cuándo, valor anterior/nuevo).
   Crear/editar/borrar el propio proyecto sigue requiriendo autenticación. `publication_consent`
   queda como columna en `projects` sin uso por ahora (decisión consciente: ya no gatea
   visibilidad; se retira el campo en una migración aparte si se confirma que no hace falta).
+- Documentos de un proyecto: mismo criterio de permisos que editar el proyecto (cualquier
+  integrante puede subir/borrar, admin también sobre cualquier proyecto). Descarga pública,
+  sin login. Tipos permitidos: PDF, Word, PowerPoint. Tamaño máximo 25MB por archivo.
 
 ## Ciclo de vida de un proyecto (`projects.status`)
 

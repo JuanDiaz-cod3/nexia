@@ -6,3 +6,7 @@ psycopg[binary]==3.3.4
 pydantic-settings==2.15.0
 argon2-cffi==25.1.0
 pyjwt==2.13.0
+# Documentos: httpx llama a la API REST de Supabase Storage;
+# python-multipart es requisito de FastAPI para leer UploadFile/File().
+httpx==0.28.1
+python-multipart==0.0.32

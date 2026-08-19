@@ -8,6 +8,7 @@ from app.models.student_group import StudentGroup
 from app.models.student_group_member import StudentGroupMember
 from app.models.project import Project
 from app.models.project_member import ProjectMember
+from app.models.document import Document
 
 __all__ = [
     "School",
@@ -20,4 +21,5 @@ __all__ = [
     "StudentGroupMember",
     "Project",
     "ProjectMember",
+    "Document",
 ]

@@ -363,13 +363,37 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   navegador todavía (sin conector de Chrome en esa sesión); quedan 2 P3 de polish.
 - [ ] Ronda de `impeccable` sobre el resto de la app (más allá del login, que ya tuvo la
   suya) — planeado para cuando se cierren los demás ítems de esta lista, no antes.
+- [x] **Documentos (backend):** Juan marcó que era la pieza más importante faltante — se
+  saca de "fuera de alcance" en `CLAUDE.md` (queda solo `awards` ahí) y se implementa.
+  Tabla `documents` nueva (`project_id` con `ondelete=CASCADE`, `storage_path` único
+  generado con `secrets.token_hex`, no el nombre original). `app/core/storage.py`:
+  cliente propio con `httpx` contra la API REST de Supabase Storage (se evaluó el SDK
+  oficial `supabase-py` y se descartó — trae clientes de Auth/Realtime/Postgrest que no
+  se usan, la app ya habla con Postgres directo). Endpoints en `app/api/v1/documents.py`:
+  `GET /projects/{id}/documents` (público, sin login, mismo criterio que `GET /projects`),
+  `POST` (integrante o admin, valida tipo por content-type real —no por extensión del
+  nombre, que el cliente puede falsificar— y tamaño ≤25MB antes de llamar a Storage: PDF,
+  Word, PowerPoint), `DELETE /documents/{id}` (mismo criterio de permisos). Dependencias
+  nuevas en runtime: `httpx` (promovido de dev, ya se usaba para tests) y
+  `python-multipart` (requisito de FastAPI para `UploadFile`/`File()`, no estaba
+  instalado). Migración generada con autogenerate y aplicada a la Supabase real.
+  8 tests nuevos (48 backend en total), mockeando `storage.upload_file`/`delete_file`
+  — nunca le pegan a la Supabase real.
+  **Bug real encontrado y arreglado en vivo:** `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`
+  en `.env` seguían con el placeholder del scaffold inicial (nunca se habían completado
+  — hasta ahora la app solo usaba Postgres directo). Una vez completados, la primera
+  prueba real devolvía `400 Invalid Compact JWS` — la API de Supabase Storage exige
+  *dos* headers (`Authorization` y `apikey`), `storage.py` solo mandaba uno. Corregido y
+  verificado de punta a punta a mano (subida → URL pública responde el contenido real →
+  borrado), y el bucket `documents` se creó como público vía la misma API (no existía).
+  Falta: la parte de frontend (subir/listar/borrar desde `MyProjectPage`/`ProjectsPage`).
 
 ## Fuera de alcance (recordatorio, no hacer todavía)
 
 Documentado en detalle en `CLAUDE.md`. Se deja aquí solo como recordatorio de qué *no*
 hay que empezar a construir por accidente:
 
-- `documents`, `awards`.
+- `awards`.
 - `defense_sessions`, `session_judges`, `evaluations`, `evaluation_criteria`,
   `evaluation_audit` — todo el bloque de sustentación/evaluación/jurados (ejercicio
   conceptual, no comprometido como parte del plan).
