@@ -12,10 +12,7 @@ const mockedListSections = vi.mocked(adminApi.listSections)
 const mockedListGroups = vi.mocked(adminApi.listStudentGroups)
 const mockedAddMembers = vi.mocked(adminApi.addGroupMembers)
 
-// searchStudents no se ejerce en estos tests (no llegamos a tipear una
-// busqueda de estudiante existente) - se mockea igual para que vi.mock no
-// deje la funcion como undefined si algun test futuro la toca.
-vi.mocked(adminApi.searchStudents).mockResolvedValue([])
+const mockedSearchStudents = vi.mocked(adminApi.searchStudents)
 
 describe('AdminStudentsPage — modo "grupo nuevo"', () => {
   beforeEach(() => {
@@ -23,6 +20,7 @@ describe('AdminStudentsPage — modo "grupo nuevo"', () => {
     mockedListSections.mockReset()
     mockedListGroups.mockReset()
     mockedAddMembers.mockReset()
+    mockedSearchStudents.mockReset()
   })
 
   it('arranca con una fila de estudiante, y cambiar la cantidad agrega filas', async () => {
@@ -86,6 +84,7 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
     mockedListSections.mockReset()
     mockedListGroups.mockReset()
     mockedAddMembers.mockReset()
+    mockedSearchStudents.mockReset()
   })
 
   it('carga secciones y grupos, y agrega un integrante nuevo al grupo elegido', async () => {
@@ -128,6 +127,58 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
     expect(mockedAddMembers).toHaveBeenCalledWith('token-admin', 5, {
       new_students: [{ full_name: 'Nuevo Estudiante', email: 'nuevo@lasalle.edu.co' }],
       existing_student_ids: [],
+    })
+  })
+
+  it('busca y selecciona un estudiante existente para agregarlo al grupo', async () => {
+    const user = userEvent.setup()
+    mockedListSections.mockResolvedValueOnce([{ id: 1, name: '11°A' }])
+    mockedListGroups.mockResolvedValueOnce([
+      { id: 5, section_id: 1, section_name: '11°A', students: [] },
+    ])
+    mockedSearchStudents.mockResolvedValueOnce([
+      { id: 40, full_name: 'Carlos Existente', username: 'carlos', email: 'carlos@lasalle.edu.co', already_in_group: false },
+      { id: 41, full_name: 'Ocupado Estudiante', username: 'ocupado', email: 'ocupado@lasalle.edu.co', already_in_group: true },
+    ])
+    mockedAddMembers.mockResolvedValueOnce({
+      group_id: 5,
+      section_id: 1,
+      section_name: '11°A',
+      added_new: [],
+      added_existing: [{ id: 40, full_name: 'Carlos Existente', username: 'carlos', email: 'carlos@lasalle.edu.co' }],
+    })
+
+    render(<AdminStudentsPage token="token-admin" />)
+    await user.click(screen.getByRole('button', { name: 'Agregar a un grupo existente' }))
+
+    const sectionSelect = await screen.findByLabelText('Sección')
+    await user.selectOptions(sectionSelect, '11°A')
+    await user.click(await screen.findByText(/sin integrantes todavía/))
+
+    // Cambiar el integrante 1 a modo "Existente".
+    await user.click(screen.getByRole('button', { name: 'Existente' }))
+
+    await user.type(screen.getByLabelText('Buscar por nombre o usuario'), 'carlos')
+    await user.click(screen.getByRole('button', { name: 'Buscar' }))
+    expect(mockedSearchStudents).toHaveBeenCalledWith('token-admin', 'carlos')
+
+    // El resultado ya en un grupo no se puede elegir.
+    const occupiedRow = (await screen.findByText(/Ocupado Estudiante/)).closest('li')!
+    expect(within(occupiedRow).getByRole('button', { name: 'Elegir' })).toBeDisabled()
+
+    const availableRow = screen.getByText(/Carlos Existente/).closest('li')!
+    await user.click(within(availableRow).getByRole('button', { name: 'Elegir' }))
+
+    // Tras elegirlo, la fila muestra el estudiante seleccionado en vez del buscador.
+    expect(screen.getByText(/Carlos Existente — usuario: carlos/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Buscar por nombre o usuario')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Agregar al grupo' }))
+
+    expect(await screen.findByRole('heading', { name: 'Integrantes agregados a 11°A' })).toBeInTheDocument()
+    expect(mockedAddMembers).toHaveBeenCalledWith('token-admin', 5, {
+      new_students: [],
+      existing_student_ids: [40],
     })
   })
 

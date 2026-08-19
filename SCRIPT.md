@@ -169,12 +169,13 @@ draft → submitted → under_review → needs_revision → approved → defende
 
 ## 10. To-Do — qué falta dentro de este corte
 
-- [ ] **Testing:** las 6 piezas principales del frontend ya tienen cobertura básica.
-  Falta: el flujo de "buscar estudiante existente" en `AdminStudentsPage`, los botones
-  de "Copiar" (clipboard), `HomePage`/`LandingPage` (sin tests), y en el backend el
-  resto de endpoints de `projects` que aún no tienen test dedicado.
-- [x] **CI:** pipeline escrito (ver arriba). Falta el primer push para confirmar que
-  corre bien en GitHub de verdad, no solo localmente.
+- [x] **Testing:** 40 tests backend + 39 frontend (ver `PROGRESS.md`). Falta solo los
+  botones de "Copiar" (usan `navigator.clipboard`, no mockeado — bajo valor).
+- [x] **CI:** pipeline con `pip-audit` incluido, ya pusheado y corriendo en GitHub.
+- [x] **Auditoría de seguridad:** hecha (`cyber-neo`), 3 prioridades corregidas
+  (logging de auth, security headers, CI hardening). Quedan low-impact: rate limiting
+  en login, contraseña hardcodeada en `create_admin.py`, puerto del docker-compose de
+  test.
 - [ ] **Deploy real:** nada desplegado — Vercel/Render/Supabase decididos en el plan pero
   no ejecutados, todo sigue en local.
 - [ ] **Responsive y accesibilidad** de `ProjectsPage`, `MyProjectPage` y `AppShell` (el

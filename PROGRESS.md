@@ -254,6 +254,16 @@ jurados, documentos y premios queda fuera de este corte a propósito.
     edición accidental en el editor, no relacionada con la auditoría. Restaurado con
     `git checkout -- ...` antes de seguir; verificado que los 32 tests de frontend
     siguen pasando.
+- **Cierre de huecos de testing (40 backend, 39 frontend):** `GET /projects/{id}` no
+  tenía ningún test (caso feliz público con integrantes, y 404 `not_found`) — agregado a
+  `test_projects_api.py`. En `AdminStudentsPage.test.tsx` se sumó el flujo de "buscar y
+  seleccionar un estudiante existente" que había quedado afuera (busca, descarta el
+  resultado ya-en-un-grupo por estar `disabled`, selecciona, confirma que el buscador se
+  reemplaza por la tarjeta de seleccionado, y que `addGroupMembers` se llama con
+  `existing_student_ids` correcto). `HomePage.test.tsx` (5) y `LandingPage.test.tsx` (1)
+  nuevos — cubren stats/proyectos recientes, el sello solo en `published`, vacío, error,
+  y el botón "Entrar"/"Explorar proyectos". La rotación de frases (con `setInterval`) se
+  dejó afuera a propósito, bajo valor para el esfuerzo de fake timers que requeriría.
 
 ## Qué falta — dentro del alcance de este corte
 
