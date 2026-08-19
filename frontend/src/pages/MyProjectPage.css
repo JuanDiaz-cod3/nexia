@@ -117,6 +117,20 @@
   letter-spacing: 0.02em;
 }
 
+.my-project-upload-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.my-project-upload-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: var(--space-xs) 0 0;
+}
+
 .my-project-section p {
   margin: 0;
 }

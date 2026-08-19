@@ -18,6 +18,10 @@
   text-align: left;
 }
 
+.project-documents {
+  margin-top: var(--space-xs);
+}
+
 .project-category {
   /* --color-accent-text (no --color-accent): el accent crudo sobre blanco
      da ~2.2:1 de contraste, falla WCAG AA (4.5:1). Ver ronda de impeccable. */

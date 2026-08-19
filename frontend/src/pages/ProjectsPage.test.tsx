@@ -1,16 +1,20 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProjectsPage } from './ProjectsPage'
 import { ApiError } from '../api/client'
 import * as projectsApi from '../api/projects'
+import * as documentsApi from '../api/documents'
 import type { Project } from '../api/projects'
 
 vi.mock('../api/projects')
+vi.mock('../api/documents')
 
 const mockedList = vi.mocked(projectsApi.listProjects)
 const mockedUpdate = vi.mocked(projectsApi.updateProject)
 const mockedDelete = vi.mocked(projectsApi.deleteProject)
+const mockedListDocuments = vi.mocked(documentsApi.listDocuments)
+const mockedDeleteDocument = vi.mocked(documentsApi.deleteDocument)
 
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {
@@ -31,6 +35,8 @@ describe('ProjectsPage', () => {
     mockedList.mockReset()
     mockedUpdate.mockReset()
     mockedDelete.mockReset()
+    mockedListDocuments.mockReset().mockResolvedValue([])
+    mockedDeleteDocument.mockReset()
   })
 
   it('muestra los proyectos después de cargar', async () => {
@@ -114,5 +120,56 @@ describe('ProjectsPage', () => {
       expect(mockedDelete).toHaveBeenCalledWith('token-admin', 1)
     })
     expect(screen.queryByText('Energía solar en el colegio')).not.toBeInTheDocument()
+  })
+
+  it('muestra los documentos del proyecto, sin botón de borrar para no-admin', async () => {
+    mockedList.mockResolvedValueOnce([makeProject()])
+    mockedListDocuments.mockResolvedValueOnce([
+      {
+        id: 1,
+        file_name: 'informe.pdf',
+        file_type: 'application/pdf',
+        size_bytes: 1000,
+        uploaded_at: '2026-01-01T00:00:00Z',
+        url: 'https://fake.supabase.co/documents/1/informe.pdf',
+      },
+    ])
+
+    render(<ProjectsPage token={null} isAdmin={false} />)
+
+    expect(await screen.findByText('informe.pdf')).toBeInTheDocument()
+    expect(mockedListDocuments).toHaveBeenCalledWith(1, null)
+    expect(within(screen.getByRole('list')).queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
+  })
+
+  it('un admin puede borrar un documento del proyecto', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValueOnce([makeProject()])
+    mockedListDocuments.mockResolvedValueOnce([
+      {
+        id: 9,
+        file_name: 'informe.pdf',
+        file_type: 'application/pdf',
+        size_bytes: 1000,
+        uploaded_at: '2026-01-01T00:00:00Z',
+        url: 'https://fake.supabase.co/documents/1/informe.pdf',
+      },
+    ])
+    mockedDeleteDocument.mockResolvedValueOnce(undefined)
+
+    render(<ProjectsPage token="token-admin" isAdmin />)
+    await screen.findByText('informe.pdf')
+
+    // "Borrar"/"Sí, borrar" tambien son los nombres de los botones para
+    // borrar el proyecto entero (mas abajo en la misma tarjeta) - se
+    // busca dentro de la lista de documentos para no ambiguar.
+    const documentList = screen.getByRole('list')
+    await user.click(within(documentList).getByRole('button', { name: 'Borrar' }))
+    await user.click(within(documentList).getByRole('button', { name: 'Sí, borrar' }))
+
+    await waitFor(() => {
+      expect(mockedDeleteDocument).toHaveBeenCalledWith('token-admin', 9)
+    })
+    expect(screen.queryByText('informe.pdf')).not.toBeInTheDocument()
   })
 })

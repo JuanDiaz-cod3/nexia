@@ -3,6 +3,7 @@ import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { Spinner } from '../components/Spinner'
+import { DocumentList } from '../components/DocumentList'
 import {
   listProjects,
   createProject,
@@ -10,8 +11,11 @@ import {
   deleteProject,
   type Project,
 } from '../api/projects'
+import { listDocuments, uploadDocument, deleteDocument, type Document } from '../api/documents'
 import { getCurrentUser } from '../api/users'
 import { ApiError } from '../api/client'
+
+const ALLOWED_DOCUMENT_EXTENSIONS = '.pdf,.doc,.docx,.ppt,.pptx'
 import './MyProjectPage.css'
 
 interface MyProjectPageProps {
@@ -47,6 +51,11 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null)
+
   useEffect(() => {
     let cancelled = false
 
@@ -80,6 +89,25 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
   const myProject = projects.find((project) =>
     project.members.some((member) => member.id === currentUserId),
   )
+
+  // Separado del efecto de arriba: myProject.id no se conoce hasta que
+  // projects/currentUserId ya cargaron. Errores de carga de documentos no
+  // bloquean la pantalla (a diferencia de error/loading de arriba) - el
+  // proyecto igual es utilizable si esto falla, solo la seccion queda vacia.
+  useEffect(() => {
+    if (!myProject) return
+    let cancelled = false
+    listDocuments(myProject.id, token)
+      .then((data) => {
+        if (!cancelled) setDocuments(data)
+      })
+      .catch(() => {
+        if (!cancelled) setDocuments([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [myProject?.id, token])
 
   function startEdit(project: Project) {
     setEditTitle(project.title)
@@ -126,6 +154,41 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
       setEditError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
     } finally {
       setEditLoading(false)
+    }
+  }
+
+  async function handleUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!myProject) return
+    const input = event.currentTarget.elements.namedItem('file') as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) return
+
+    setUploadError(null)
+    setUploading(true)
+    try {
+      const document = await uploadDocument(token, myProject.id, file)
+      setDocuments((prev) => [document, ...prev])
+      input.value = ''
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleDeleteDocument(documentId: number) {
+    setDeletingDocumentId(documentId)
+    try {
+      await deleteDocument(token, documentId)
+      setDocuments((prev) => prev.filter((d) => d.id !== documentId))
+    } catch {
+      // Silencioso a proposito: no hay un lugar obvio donde mostrar el
+      // error sin agregar otro estado de error solo para esto - el
+      // documento simplemente sigue en la lista, el usuario puede
+      // reintentar el borrado.
+    } finally {
+      setDeletingDocumentId(null)
     }
   }
 
@@ -293,6 +356,29 @@ export function MyProjectPage({ token }: MyProjectPageProps) {
         <div className="my-project-section">
           <h3>Asesor</h3>
           <p>{myProject.advisor ? myProject.advisor.full_name : 'Sin asesor asignado todavía.'}</p>
+        </div>
+
+        <div className="my-project-section">
+          <h3>Documentos</h3>
+          <DocumentList
+            documents={documents}
+            canDelete
+            onDelete={handleDeleteDocument}
+            deletingId={deletingDocumentId}
+          />
+          <form className="my-project-upload-form" onSubmit={handleUpload}>
+            <input
+              type="file"
+              name="file"
+              accept={ALLOWED_DOCUMENT_EXTENSIONS}
+              aria-label="Elegir documento para subir"
+            />
+            <Button type="submit" variant="secondary" disabled={uploading}>
+              {uploading ? 'Subiendo…' : 'Subir documento'}
+            </Button>
+          </form>
+          {uploadError && <p className="my-project-error" role="alert">{uploadError}</p>}
+          <p className="my-project-upload-hint">PDF, Word o PowerPoint. Máximo 25MB.</p>
         </div>
       </Card>
     </div>

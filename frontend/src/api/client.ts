@@ -72,10 +72,14 @@ async function fetchWithRefresh<T>(
   options: RequestInit,
   isRetry: boolean,
 ): Promise<T> {
+  // FormData (subida de documentos): el navegador tiene que poner su
+  // propio Content-Type con el boundary del multipart - si lo forzamos a
+  // application/json aca, el backend no puede parsear el body.
+  const isFormData = options.body instanceof FormData
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
     },
   })

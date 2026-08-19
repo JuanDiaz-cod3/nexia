@@ -1,20 +1,26 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MyProjectPage } from './MyProjectPage'
 import * as projectsApi from '../api/projects'
 import * as usersApi from '../api/users'
+import * as documentsApi from '../api/documents'
 import type { Project } from '../api/projects'
 import type { CurrentUser } from '../api/users'
+import type { Document } from '../api/documents'
 
 vi.mock('../api/projects')
 vi.mock('../api/users')
+vi.mock('../api/documents')
 
 const mockedList = vi.mocked(projectsApi.listProjects)
 const mockedCreate = vi.mocked(projectsApi.createProject)
 const mockedUpdate = vi.mocked(projectsApi.updateProject)
 const mockedDelete = vi.mocked(projectsApi.deleteProject)
 const mockedGetCurrentUser = vi.mocked(usersApi.getCurrentUser)
+const mockedListDocuments = vi.mocked(documentsApi.listDocuments)
+const mockedUploadDocument = vi.mocked(documentsApi.uploadDocument)
+const mockedDeleteDocument = vi.mocked(documentsApi.deleteDocument)
 
 const ME: CurrentUser = {
   id: 10,
@@ -49,6 +55,9 @@ describe('MyProjectPage', () => {
     mockedUpdate.mockReset()
     mockedDelete.mockReset()
     mockedGetCurrentUser.mockReset()
+    mockedListDocuments.mockReset().mockResolvedValue([])
+    mockedUploadDocument.mockReset()
+    mockedDeleteDocument.mockReset()
   })
 
   it('sin proyecto propio, muestra el formulario de creación y crea el proyecto', async () => {
@@ -140,5 +149,63 @@ describe('MyProjectPage', () => {
       expect(mockedDelete).toHaveBeenCalledWith('token-ana', 1)
     })
     expect(await screen.findByText(/Todavía no perteneces a un proyecto/)).toBeInTheDocument()
+  })
+
+  it('sube un documento y lo agrega a la lista', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValueOnce([makeProject()])
+    mockedGetCurrentUser.mockResolvedValueOnce(ME)
+    mockedListDocuments.mockResolvedValueOnce([])
+    const uploaded: Document = {
+      id: 1,
+      file_name: 'informe.pdf',
+      file_type: 'application/pdf',
+      size_bytes: 1000,
+      uploaded_at: '2026-01-01T00:00:00Z',
+      url: 'https://fake.supabase.co/documents/1/informe.pdf',
+    }
+    mockedUploadDocument.mockResolvedValueOnce(uploaded)
+
+    render(<MyProjectPage token="token-ana" />)
+    await screen.findByRole('heading', { name: 'Energía solar en el colegio' })
+
+    const file = new File(['contenido'], 'informe.pdf', { type: 'application/pdf' })
+    await user.upload(screen.getByLabelText('Elegir documento para subir'), file)
+    await user.click(screen.getByRole('button', { name: 'Subir documento' }))
+
+    expect(await screen.findByText('informe.pdf')).toBeInTheDocument()
+    expect(mockedUploadDocument).toHaveBeenCalledWith('token-ana', 1, file)
+  })
+
+  it('borra un documento del proyecto propio', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValueOnce([makeProject()])
+    mockedGetCurrentUser.mockResolvedValueOnce(ME)
+    mockedListDocuments.mockResolvedValueOnce([
+      {
+        id: 5,
+        file_name: 'informe.pdf',
+        file_type: 'application/pdf',
+        size_bytes: 1000,
+        uploaded_at: '2026-01-01T00:00:00Z',
+        url: 'https://fake.supabase.co/documents/1/informe.pdf',
+      },
+    ])
+    mockedDeleteDocument.mockResolvedValueOnce(undefined)
+
+    render(<MyProjectPage token="token-ana" />)
+    await screen.findByText('informe.pdf')
+
+    // "Borrar" tambien es el nombre del boton de borrar el proyecto entero
+    // (mas abajo en la misma pantalla) - se busca dentro de la lista de
+    // documentos especificamente para no ambiguar entre los dos.
+    const documentList = screen.getByRole('list')
+    await user.click(within(documentList).getByRole('button', { name: 'Borrar' }))
+    await user.click(within(documentList).getByRole('button', { name: 'Sí, borrar' }))
+
+    await waitFor(() => {
+      expect(mockedDeleteDocument).toHaveBeenCalledWith('token-ana', 5)
+    })
+    expect(screen.queryByText('informe.pdf')).not.toBeInTheDocument()
   })
 })

@@ -3,7 +3,9 @@ import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { Spinner } from '../components/Spinner'
+import { DocumentList } from '../components/DocumentList'
 import { listProjects, updateProject, deleteProject, type Project } from '../api/projects'
+import { listDocuments, deleteDocument, type Document } from '../api/documents'
 import { ApiError } from '../api/client'
 import './ProjectsPage.css'
 
@@ -37,6 +39,9 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const [documentsByProject, setDocumentsByProject] = useState<Record<number, Document[]>>({})
+  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null)
+
   // Mueve el foco a la tarjeta que cambio de estado - sin esto, un lector
   // de pantalla no tiene forma de saber que el contenido debajo del cursor
   // se reemplazo por un formulario (edicion) o una advertencia (borrado).
@@ -55,6 +60,20 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
         const projectsData = await listProjects(token)
         if (!cancelled) {
           setProjects(projectsData)
+        }
+        // En paralelo, no en serie - con pocos proyectos (escala de un
+        // colegio piloto) no vale la pena un endpoint dedicado que traiga
+        // documentos junto con la lista; si el archivo crece, se
+        // reconsidera (mismo criterio que /projects/me en MyProjectPage).
+        const documentLists = await Promise.all(
+          projectsData.map((project) => listDocuments(project.id, token).catch(() => [])),
+        )
+        if (!cancelled) {
+          const byProject: Record<number, Document[]> = {}
+          projectsData.forEach((project, index) => {
+            byProject[project.id] = documentLists[index]
+          })
+          setDocumentsByProject(byProject)
         }
       } catch (err) {
         if (!cancelled) {
@@ -111,6 +130,23 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
       setDeleteError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
     } finally {
       setDeleteLoading(false)
+    }
+  }
+
+  async function handleDeleteDocument(projectId: number, documentId: number) {
+    if (!token) return
+    setDeletingDocumentId(documentId)
+    try {
+      await deleteDocument(token, documentId)
+      setDocumentsByProject((prev) => ({
+        ...prev,
+        [projectId]: (prev[projectId] ?? []).filter((d) => d.id !== documentId),
+      }))
+    } catch {
+      // Silencioso a proposito, mismo criterio que MyProjectPage: el
+      // documento sigue en la lista, se puede reintentar.
+    } finally {
+      setDeletingDocumentId(null)
     }
   }
 
@@ -188,6 +224,15 @@ export function ProjectsPage({ token, isAdmin }: ProjectsPageProps) {
                   {project.members.map((member) => member.full_name).join(', ')}
                 </p>
                 <span className="project-status">{project.status}</span>
+
+                <div className="project-documents">
+                  <DocumentList
+                    documents={documentsByProject[project.id] ?? []}
+                    canDelete={isAdmin}
+                    onDelete={(documentId) => handleDeleteDocument(project.id, documentId)}
+                    deletingId={deletingDocumentId}
+                  />
+                </div>
 
                 {isAdmin && (
                   <div className="project-admin-controls">

@@ -386,7 +386,27 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   *dos* headers (`Authorization` y `apikey`), `storage.py` solo mandaba uno. Corregido y
   verificado de punta a punta a mano (subida → URL pública responde el contenido real →
   borrado), y el bucket `documents` se creó como público vía la misma API (no existía).
-  Falta: la parte de frontend (subir/listar/borrar desde `MyProjectPage`/`ProjectsPage`).
+- **Documentos (frontend):** `api/documents.ts` (list/upload/delete) y `client.ts` ajustado
+  para no forzar `Content-Type: application/json` cuando el body es `FormData` (rompía el
+  multipart). Componente compartido `DocumentList` (lista + botón "Descargar" con ícono
+  SVG dibujado a mano —nada de emoji, ver craft-floor de `impeccable`— + borrar opcional
+  con confirmación inline), reusado en `MyProjectPage` (subida propia + borrar siempre) y
+  `ProjectsPage` (solo lectura + borrar para admin, documentos de todos los proyectos
+  cargados en paralelo con `Promise.all`, mismo criterio que "no vale la pena un endpoint
+  dedicado a esta escala"). El nombre del archivo pasó de ser el link a ser texto plano,
+  con un link "Descargar" explícito aparte (pedido de Juan tras probarlo: el nombre solo
+  como link no se leía como una acción de descarga). 20 tests nuevos/actualizados
+  (52 frontend en total).
+  **Bug real encontrado en vivo (no de código, del servidor de desarrollo):** tras
+  agregar el router de documentos, `localhost:8000` seguía devolviendo `404 Not Found`
+  genérico de Starlette (no el `{"detail":"Proyecto no encontrado","code":"not_found"}`
+  propio) para `/projects/{id}/documents` — confirmado vía `/openapi.json` que la ruta
+  ni existía en el proceso vivo. El `uvicorn --reload` se había quedado a mitad de una
+  recarga (activada por archivos de `.venv` cambiando durante `pip install
+  python-multipart`, nunca imprimió el "Started server process" de confirmación) y
+  seguía sirviendo el código de antes de que existiera `documents.py`. Se mató el
+  proceso y se reinició limpio — confirmado con `/openapi.json` que las rutas nuevas
+  aparecen, y con `GET /projects/7/documents` real devolviendo `200 []`.
 
 ## Fuera de alcance (recordatorio, no hacer todavía)
 

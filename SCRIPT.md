@@ -136,9 +136,10 @@ draft → submitted → under_review → needs_revision → approved → defende
 - [x] Endpoints: `POST /auth/login`, `POST /auth/refresh`, `POST /auth/change-password`,
   `GET /users/me`, `GET /projects`, `GET /projects/{id}`, `POST /projects`,
   `PATCH /projects/{id}`, `DELETE /projects/{id}`.
-- [x] Documentos: `GET/POST /projects/{id}/documents`, `DELETE /documents/{id}` — sube a
-  Supabase Storage vía `httpx` (PDF/Word/PowerPoint, máx 25MB). Probado en vivo de punta
-  a punta. Falta el frontend.
+- [x] Documentos, backend + frontend: `GET/POST /projects/{id}/documents`,
+  `DELETE /documents/{id}` — sube a Supabase Storage vía `httpx` (PDF/Word/PowerPoint,
+  máx 25MB). `DocumentList` compartido (subir/listar/descargar/borrar) en `MyProjectPage`
+  y `ProjectsPage`. Probado en vivo de punta a punta, subida real confirmada.
 - [x] Regla "un proyecto por año académico" enforced en DB (409 `already_in_project`).
 - [x] Rol `admin` con control total sobre proyectos (`deps.is_admin`).
 - [x] `GET /projects` y `GET /projects/{id}` públicos (sin login).
