@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     # Origen permitido para CORS: el frontend en desarrollo.
     frontend_url: str = "http://localhost:5173"
 
+    # Determina las flags de las cookies de auth (ver app/core/cookies.py):
+    # en production, Secure=true + SameSite=None (necesario para viajar
+    # entre dominios distintos, Vercel <-> Render). En local, Secure=true
+    # rompe todo (el navegador no guarda cookies Secure sobre HTTP), asi
+    # que ahi va Secure=false + SameSite=Lax (alcanza: localhost:5173 y
+    # localhost:8000 son "same-site" para el navegador, el SameSite check
+    # ignora el puerto).
+    environment: str = "development"
+
     # Supabase Storage: documentos de proyectos (ver app/core/storage.py).
     supabase_url: str
     supabase_service_role_key: str

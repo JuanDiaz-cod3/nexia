@@ -39,7 +39,7 @@ def test_create_project_conflicts_when_already_in_project_this_year(client, db_s
     response = client.post(
         "/api/v1/projects",
         json={"title": "Proyecto nuevo"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 409

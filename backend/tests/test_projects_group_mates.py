@@ -63,7 +63,7 @@ def test_creating_project_adds_group_mates_as_members(client, db_session):
     response = client.post(
         "/api/v1/projects",
         json={"title": "Proyecto en grupo"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 201
@@ -102,7 +102,7 @@ def test_group_mate_already_in_another_project_is_skipped_not_fatal(client, db_s
     response = client.post(
         "/api/v1/projects",
         json={"title": "Proyecto del creador"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 201
@@ -119,7 +119,7 @@ def test_project_section_id_copied_from_creator(client, db_session):
     response = client.post(
         "/api/v1/projects",
         json={"title": "Proyecto con seccion"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 201

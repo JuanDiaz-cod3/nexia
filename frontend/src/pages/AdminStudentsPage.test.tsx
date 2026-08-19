@@ -25,7 +25,7 @@ describe('AdminStudentsPage — modo "grupo nuevo"', () => {
 
   it('arranca con una fila de estudiante, y cambiar la cantidad agrega filas', async () => {
     const user = userEvent.setup()
-    render(<AdminStudentsPage token="token-admin" />)
+    render(<AdminStudentsPage />)
 
     expect(screen.getAllByText(/^Estudiante \d$/)).toHaveLength(1)
 
@@ -43,34 +43,94 @@ describe('AdminStudentsPage — modo "grupo nuevo"', () => {
       section_id: 1,
       section_name: '11°A',
       students: [
-        { id: 1, full_name: 'Ana Estudiante', username: 'ana', email: 'ana@lasalle.edu.co', temporary_password: 'tmp-123' },
+        {
+          id: 1,
+          full_name: 'Ana Estudiante',
+          username: 'ana',
+          email: 'ana@lasalle.edu.co',
+          section_name: '11°A',
+          temporary_password: 'tmp-123',
+        },
       ],
     })
 
-    render(<AdminStudentsPage token="token-admin" />)
+    render(<AdminStudentsPage />)
 
-    await user.type(screen.getByLabelText('Sección (ej. 11°A)'), '11°A')
     await user.type(screen.getByLabelText('Nombre completo'), 'Ana Estudiante')
     await user.type(screen.getByLabelText('Correo'), 'ana@lasalle.edu.co')
+    await user.type(screen.getByLabelText('Sección (ej. 11°A)'), '11°A')
     await user.click(screen.getByRole('button', { name: 'Crear grupo' }))
 
-    expect(await screen.findByRole('heading', { name: 'Grupo creado en 11°A' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Grupo creado (11°A)' })).toBeInTheDocument()
     expect(screen.getByText('tmp-123')).toBeInTheDocument()
-    expect(mockedCreateGroup).toHaveBeenCalledWith('token-admin', {
-      section_name: '11°A',
-      students: [{ full_name: 'Ana Estudiante', email: 'ana@lasalle.edu.co' }],
+    expect(mockedCreateGroup).toHaveBeenCalledWith({
+      students: [{ full_name: 'Ana Estudiante', email: 'ana@lasalle.edu.co', section_name: '11°A' }],
     })
+  })
+
+  it('permite mezclar secciones distintas dentro del mismo grupo', async () => {
+    const user = userEvent.setup()
+    mockedCreateGroup.mockResolvedValueOnce({
+      group_id: 1,
+      section_id: 1,
+      section_name: '11°A',
+      students: [
+        {
+          id: 1,
+          full_name: 'Ana Estudiante',
+          username: 'ana',
+          email: 'ana@lasalle.edu.co',
+          section_name: '11°A',
+          temporary_password: 'tmp-123',
+        },
+        {
+          id: 2,
+          full_name: 'Beto Estudiante',
+          username: 'beto',
+          email: 'beto@lasalle.edu.co',
+          section_name: '11°B',
+          temporary_password: 'tmp-456',
+        },
+      ],
+    })
+
+    render(<AdminStudentsPage />)
+
+    const sizeInput = screen.getByLabelText('Cantidad de estudiantes en el grupo')
+    await user.clear(sizeInput)
+    await user.type(sizeInput, '2')
+
+    const nameInputs = screen.getAllByLabelText('Nombre completo')
+    const emailInputs = screen.getAllByLabelText('Correo')
+    const sectionInputs = screen.getAllByLabelText('Sección (ej. 11°A)')
+
+    await user.type(nameInputs[0], 'Ana Estudiante')
+    await user.type(emailInputs[0], 'ana@lasalle.edu.co')
+    await user.type(sectionInputs[0], '11°A')
+    await user.type(nameInputs[1], 'Beto Estudiante')
+    await user.type(emailInputs[1], 'beto@lasalle.edu.co')
+    await user.type(sectionInputs[1], '11°B')
+
+    await user.click(screen.getByRole('button', { name: 'Crear grupo' }))
+
+    expect(mockedCreateGroup).toHaveBeenCalledWith({
+      students: [
+        { full_name: 'Ana Estudiante', email: 'ana@lasalle.edu.co', section_name: '11°A' },
+        { full_name: 'Beto Estudiante', email: 'beto@lasalle.edu.co', section_name: '11°B' },
+      ],
+    })
+    expect(await screen.findByRole('heading', { name: 'Grupo creado (11°A, 11°B)' })).toBeInTheDocument()
   })
 
   it('muestra el error del backend si la creación falla', async () => {
     const user = userEvent.setup()
     mockedCreateGroup.mockRejectedValueOnce(new ApiError('El correo ya está en uso.', 'duplicate_email', 400))
 
-    render(<AdminStudentsPage token="token-admin" />)
+    render(<AdminStudentsPage />)
 
-    await user.type(screen.getByLabelText('Sección (ej. 11°A)'), '11°A')
     await user.type(screen.getByLabelText('Nombre completo'), 'Ana Estudiante')
     await user.type(screen.getByLabelText('Correo'), 'ana@lasalle.edu.co')
+    await user.type(screen.getByLabelText('Sección (ej. 11°A)'), '11°A')
     await user.click(screen.getByRole('button', { name: 'Crear grupo' }))
 
     expect(await screen.findByText('El correo ya está en uso.')).toBeInTheDocument()
@@ -103,12 +163,19 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
       section_id: 1,
       section_name: '11°A',
       added_new: [
-        { id: 30, full_name: 'Nuevo Estudiante', username: 'nuevo', email: 'nuevo@lasalle.edu.co', temporary_password: 'tmp-456' },
+        {
+          id: 30,
+          full_name: 'Nuevo Estudiante',
+          username: 'nuevo',
+          email: 'nuevo@lasalle.edu.co',
+          section_name: '11°B',
+          temporary_password: 'tmp-456',
+        },
       ],
       added_existing: [],
     })
 
-    render(<AdminStudentsPage token="token-admin" />)
+    render(<AdminStudentsPage />)
     await user.click(screen.getByRole('button', { name: 'Agregar a un grupo existente' }))
 
     const sectionSelect = await screen.findByLabelText('Sección')
@@ -120,12 +187,13 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
     const addForm = screen.getByRole('button', { name: 'Agregar al grupo' }).closest('form')!
     await user.type(within(addForm).getByLabelText('Nombre completo'), 'Nuevo Estudiante')
     await user.type(within(addForm).getByLabelText('Correo'), 'nuevo@lasalle.edu.co')
+    await user.type(within(addForm).getByLabelText('Sección (ej. 11°A)'), '11°B')
     await user.click(screen.getByRole('button', { name: 'Agregar al grupo' }))
 
     expect(await screen.findByRole('heading', { name: 'Integrantes agregados a 11°A' })).toBeInTheDocument()
     expect(screen.getByText('tmp-456')).toBeInTheDocument()
-    expect(mockedAddMembers).toHaveBeenCalledWith('token-admin', 5, {
-      new_students: [{ full_name: 'Nuevo Estudiante', email: 'nuevo@lasalle.edu.co' }],
+    expect(mockedAddMembers).toHaveBeenCalledWith(5, {
+      new_students: [{ full_name: 'Nuevo Estudiante', email: 'nuevo@lasalle.edu.co', section_name: '11°B' }],
       existing_student_ids: [],
     })
   })
@@ -148,7 +216,7 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
       added_existing: [{ id: 40, full_name: 'Carlos Existente', username: 'carlos', email: 'carlos@lasalle.edu.co' }],
     })
 
-    render(<AdminStudentsPage token="token-admin" />)
+    render(<AdminStudentsPage />)
     await user.click(screen.getByRole('button', { name: 'Agregar a un grupo existente' }))
 
     const sectionSelect = await screen.findByLabelText('Sección')
@@ -160,7 +228,7 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
 
     await user.type(screen.getByLabelText('Buscar por nombre o usuario'), 'carlos')
     await user.click(screen.getByRole('button', { name: 'Buscar' }))
-    expect(mockedSearchStudents).toHaveBeenCalledWith('token-admin', 'carlos')
+    expect(mockedSearchStudents).toHaveBeenCalledWith('carlos')
 
     // El resultado ya en un grupo no se puede elegir.
     const occupiedRow = (await screen.findByText(/Ocupado Estudiante/)).closest('li')!
@@ -176,7 +244,7 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
     await user.click(screen.getByRole('button', { name: 'Agregar al grupo' }))
 
     expect(await screen.findByRole('heading', { name: 'Integrantes agregados a 11°A' })).toBeInTheDocument()
-    expect(mockedAddMembers).toHaveBeenCalledWith('token-admin', 5, {
+    expect(mockedAddMembers).toHaveBeenCalledWith(5, {
       new_students: [],
       existing_student_ids: [40],
     })
@@ -187,7 +255,7 @@ describe('AdminStudentsPage — modo "agregar a grupo existente"', () => {
     mockedListSections.mockResolvedValueOnce([{ id: 2, name: '11°B' }])
     mockedListGroups.mockResolvedValueOnce([])
 
-    render(<AdminStudentsPage token="token-admin" />)
+    render(<AdminStudentsPage />)
     await user.click(screen.getByRole('button', { name: 'Agregar a un grupo existente' }))
 
     const sectionSelect = await screen.findByLabelText('Sección')

@@ -4,7 +4,7 @@
 > registro histórico exhaustivo (para eso está `git log`), sino una foto de "dónde estamos"
 > y "qué sigue" para retomar rápido.
 
-Última actualización: 2026-08-18 (sesión 6)
+Última actualización: 2026-08-18 (sesión 8)
 
 ## Dónde estamos
 
@@ -78,7 +78,8 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   usuario de vuelta al login limpio. Refresh token guardado en `localStorage` junto al
   access token (mismo patrón ya existente, se evaluó cookie `httpOnly` y se decidió
   posponerla al momento del deploy real, cuando de todas formas hay que tocar CORS entre
-  dominios). Verificado por `curl` (login, refresh, y los 4 casos de error — incluida la
+  dominios — **migrado a cookies httpOnly más adelante en el proyecto, ver más abajo**).
+  Verificado por `curl` (login, refresh, y los 4 casos de error — incluida la
   protección de tipo: un access token no sirve como refresh y viceversa) y en el navegador
   vía Chrome DevTools (access token corrupto → `401` → refresh silencioso → reintento
   exitoso, confirmado en la pestaña Network; ambos tokens corruptos → logout limpio a la
@@ -338,6 +339,52 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   normal seria invisible). Ajustado dos veces a pedido — más opaco y con menos padding
   alrededor del thumb en ambas variantes, para que se note más. Token nuevo
   `--color-primary-dark` (uso acotado, solo el scrollbar global).
+- **Base de datos real limpiada antes del deploy:** borrados todos los usuarios no-admin,
+  proyectos, documentos (fila + archivo en Storage) y secciones/grupos; queda solo el
+  admin, el colegio y el año académico. Secuencias de ID reiniciadas para que las
+  próximas filas empiecen limpias.
+- **Migración de auth a cookies httpOnly** (necesaria antes del deploy: Vercel y Render
+  van a vivir en dominios distintos, y `localStorage` con `Authorization: Bearer` no es
+  el patrón correcto para eso). Backend: `app/core/cookies.py` nuevo (helpers
+  `set_auth_cookies`/`set_access_cookie`/`clear_auth_cookies`, flags `secure`/`samesite`
+  según `settings.environment` — `Secure=true; SameSite=None` en producción,
+  `Secure=false; SameSite=Lax` en local, porque una cookie `Secure` no se guarda sobre
+  HTTP). `POST /auth/login` y `POST /auth/refresh` ahora setean cookies en vez de
+  devolver tokens en el body; `refresh` lee el refresh token de la cookie, no de un JSON;
+  `get_current_user` (`deps.py`) lee el access token de la cookie en vez del header
+  `Authorization` (se retira `HTTPBearer`); nuevo `POST /auth/logout` (JS no puede borrar
+  una cookie `httpOnly`, tiene que borrarla el servidor). CORS con `allow_credentials=True`.
+  Frontend: todas las funciones de `api/*.ts` dejan de recibir un parámetro `token` (ya no
+  hay nada que leer del lado del cliente); `apiFetch` manda `credentials:'include'` en
+  cada request; `App.tsx` ya no puede leer un token guardado para saber si hay sesión —
+  ahora hace un "probe" a `GET /users/me` al cargar (nuevo estado `isAuthChecked` para no
+  mostrar un parpadeo de "sin sesión" mientras se resuelve). 50 tests de backend y 52 de
+  frontend en verde tras la migración (2 tests nuevos de cookies en `test_auth.py`).
+  Verificado en vivo con `curl` contra el servidor real (no solo los tests): se detectó y
+  corrigió el mismo bug de `uvicorn --reload` sirviendo código viejo que ya había
+  aparecido antes con `documents` (un proceso hijo del reloader quedó huérfano ocupando
+  el puerto 8000 tras matar el proceso padre) — confirmado por `/openapi.json` sin
+  `/auth/logout` antes del fix, presente después.
+- **Grupos de proyecto pueden mezclar secciones (11°A/11°B):** ya en producción, Juan
+  encontró un grupo real con 3 estudiantes de 11°A y uno de 11°B (Octavio) — investigando el
+  porqué, se confirmó que `POST /admin/student-groups/{id}/members` con
+  `existing_student_ids` nunca validó que el estudiante perteneciera a la sección del grupo,
+  así llegó ahí sin que nadie lo decidiera a propósito. Juan confirmó que esto **sí debe
+  poder pasar** y pidió que "crear grupo nuevo" deje elegir la sección de cada estudiante
+  individualmente. Sin migración: `student_groups.section_id` se queda igual (`NOT NULL`)
+  pero cambia de significado — de "la sección del grupo" a "sección de referencia" (la del
+  primer estudiante de la lista, usada solo para organizar la navegación del admin y el
+  label "Grupo N"), mientras `users.section_id` (ya per-estudiante) es la fuente de verdad
+  real. `StudentGroupStudentInput` gana `section_name` por estudiante en vez de uno solo a
+  nivel de grupo; `_create_students_in_group` resuelve/crea una `Section` por estudiante
+  (cache local por nombre); `GET /admin/student-groups?section_id=` pasó de filtrar por
+  `StudentGroup.section_id` a un join a través de los integrantes (`User.section_id`), para
+  que un grupo mixto aparezca navegando cualquiera de sus secciones, no solo la de
+  referencia. Frontend: el campo "Sección" pasó de estar una vez al nivel del formulario a
+  una vez por fila de estudiante en ambos modos de `AdminStudentsPage` (crear grupo y
+  agregar integrante nuevo a uno existente); la tabla de resultado gana columna "Sección" y
+  el heading lista las secciones distintas presentes. 2 tests nuevos en backend (53 en
+  total) y 2 en frontend (53 en total) cubren el caso mixto de punta a punta.
 
 ## Qué falta — dentro del alcance de este corte
 
@@ -356,11 +403,25 @@ jurados, documentos y premios queda fuera de este corte a propósito.
 - [x] Auditoría de seguridad (`cyber-neo`) y correcciones de las 3 prioridades — ver
   arriba. Quedan pendientes de bajo impacto: rate limiting en login, contraseña
   hardcodeada en `create_admin.py`, puerto de la Postgres de test.
-- [ ] Deploy real: nada desplegado aún. Vercel/Render/Supabase están decididos como plan
-  en `CLAUDE.md` pero no ejecutados — sigue corriendo todo en local.
+- [x] **Deploy real: hecho.** Backend en Render (`nexia-backend-uvxb.onrender.com`, root
+  directory `backend`, `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, health check
+  `/api/v1/health`), frontend en Vercel (`nexia-lemon.vercel.app`, root directory `frontend`,
+  detección automática de Vite). Migraciones de Alembic corridas a mano contra la Supabase de
+  producción (`DATABASE_URL` sobreescrita solo en la sesión de PowerShell, sin tocar `.env`)
+  antes de exponer el servicio — confirmado `alembic current` == `alembic heads`
+  (`7807cfa4a747`). `FRONTEND_URL` en Render actualizado a la URL real de Vercel para que
+  el CORS cross-domain deje pasar las cookies (`allow_credentials` + `SameSite=None` ya
+  configurados en la sesión anterior). Login, sesión persistente y flujo completo probados
+  en vivo sobre las URLs reales.
 - [x] Responsive y accesibilidad de `ProjectsPage`, `MyProjectPage` y `AppShell` — audit
   + `harden` + `adapt` del skill `impeccable` (ver arriba). Sin verificar visualmente en
   navegador todavía (sin conector de Chrome en esa sesión); quedan 2 P3 de polish.
+- [ ] **Recuperar contraseña ("olvidé mi contraseña"):** por discutir — hoy no hay ningún
+  flujo para esto (el admin precrea cuentas con contraseña temporal, pero si un estudiante
+  o el propio admin la pierde después de cambiarla, no hay forma de recuperarla sin acceso
+  directo a la base). Pendiente definir el mecanismo (¿reset manual por el admin desde una
+  pantalla nueva? ¿algo por correo, dado que ya hay `email` por usuario?) antes de
+  implementar nada.
 - [ ] Ronda de `impeccable` sobre el resto de la app (más allá del login, que ya tuvo la
   suya) — planeado para cuando se cierren los demás ítems de esta lista, no antes.
 - [x] **Documentos (backend):** Juan marcó que era la pieza más importante faltante — se

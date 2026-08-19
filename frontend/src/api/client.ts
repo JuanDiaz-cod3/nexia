@@ -29,25 +29,18 @@ export function onSessionExpired(handler: SessionExpiredHandler): void {
   sessionExpiredHandler = handler
 }
 
-async function refreshAccessToken(): Promise<string> {
-  const refreshToken = localStorage.getItem('refresh_token')
-  if (!refreshToken) {
-    throw new Error('no_refresh_token')
-  }
-
+async function refreshAccessToken(): Promise<void> {
+  // El refresh token viaja como cookie httpOnly - el navegador la manda
+  // solo, no hay nada que leer ni mandar a mano aca. La respuesta tampoco
+  // trae nada que guardar: el nuevo access token llega como Set-Cookie.
   const response = await fetch(`${API_URL}/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+    credentials: 'include',
   })
 
   if (!response.ok) {
     throw new Error('refresh_failed')
   }
-
-  const data = await response.json()
-  localStorage.setItem('access_token', data.access_token)
-  return data.access_token as string
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -78,6 +71,7 @@ async function fetchWithRefresh<T>(
   const isFormData = options.body instanceof FormData
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
@@ -93,18 +87,9 @@ async function fetchWithRefresh<T>(
     const body = await response.clone().json().catch(() => null)
     if (body?.code === 'invalid_token') {
       try {
-        const newAccessToken = await refreshAccessToken()
-        return fetchWithRefresh<T>(
-          path,
-          {
-            ...options,
-            headers: { ...options.headers, Authorization: `Bearer ${newAccessToken}` },
-          },
-          true,
-        )
+        await refreshAccessToken()
+        return fetchWithRefresh<T>(path, options, true)
       } catch {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
         sessionExpiredHandler?.()
         throw new ApiError('Tu sesión expiró, inicia sesión de nuevo.', 'session_expired', 401)
       }

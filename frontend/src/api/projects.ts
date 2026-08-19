@@ -33,38 +33,26 @@ export interface ProjectUpdateInput {
   summary?: string | null
 }
 
-// Sin token: /projects es publico (ver CLAUDE.md). Se acepta null/undefined
-// para las pantallas que se muestran sin sesion (Inicio, Proyectos) - si hay
-// token igual se manda, pero el backend no lo exige.
-export function listProjects(token?: string | null): Promise<Project[]> {
-  return apiFetch<Project[]>('/projects', {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
+// /projects es publico (ver CLAUDE.md): se llama igual con o sin sesion
+// iniciada. Si hay una cookie de sesion, el navegador la manda solo.
+export function listProjects(): Promise<Project[]> {
+  return apiFetch<Project[]>('/projects')
 }
 
-export function createProject(token: string, input: ProjectCreateInput): Promise<Project> {
+export function createProject(input: ProjectCreateInput): Promise<Project> {
   return apiFetch<Project>('/projects', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(input),
   })
 }
 
-export function updateProject(
-  token: string,
-  projectId: number,
-  input: ProjectUpdateInput,
-): Promise<Project> {
+export function updateProject(projectId: number, input: ProjectUpdateInput): Promise<Project> {
   return apiFetch<Project>(`/projects/${projectId}`, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(input),
   })
 }
 
-export function deleteProject(token: string, projectId: number): Promise<void> {
-  return apiFetch<void>(`/projects/${projectId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  })
+export function deleteProject(projectId: number): Promise<void> {
+  return apiFetch<void>(`/projects/${projectId}`, { method: 'DELETE' })
 }

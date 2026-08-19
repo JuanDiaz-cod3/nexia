@@ -5,27 +5,31 @@
 import logging
 
 import jwt as pyjwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.cookies import ACCESS_COOKIE_NAME
 from app.core.jwt import decode_access_token
 from app.db.session import get_db
 from app.models import AcademicYear, User
 
 logger = logging.getLogger("innovalab.auth")
 
-# HTTPBearer lee el header "Authorization: Bearer <token>" y separa el
-# token del prefijo "Bearer " por nosotros.
-bearer_scheme = HTTPBearer()
-
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> User:
+    access_token = request.cookies.get(ACCESS_COOKIE_NAME)
+    if access_token is None:
+        logger.warning("missing_access_token_cookie")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"detail": "Token inválido o vencido", "code": "invalid_token"},
+        )
+
     try:
-        user_id = decode_access_token(credentials.credentials)
+        user_id = decode_access_token(access_token)
     except pyjwt.PyJWTError:
         # Sin username todavia (el token ni siquiera se pudo leer) - lo
         # unico identificable es que alguien mando un token invalido/vencido.

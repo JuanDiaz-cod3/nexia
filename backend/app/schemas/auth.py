@@ -13,19 +13,10 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+    # Los tokens ya no viajan en el body: login los manda como cookies
+    # httpOnly (ver app/core/cookies.py). Lo unico que el frontend necesita
+    # leer de la respuesta es si toca forzar el cambio de contraseña.
     must_change_password: bool
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
-class RefreshResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
 
 
 class ChangePasswordRequest(BaseModel):

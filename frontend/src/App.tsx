@@ -6,7 +6,9 @@ import { MyProjectPage } from './pages/MyProjectPage'
 import { HomePage } from './pages/HomePage'
 import { AdminStudentsPage } from './pages/AdminStudentsPage'
 import { AppShell, type AppPage } from './components/AppShell'
+import { Spinner } from './components/Spinner'
 import { onSessionExpired } from './api/client'
+import { logout as logoutRequest } from './api/auth'
 import { getCurrentUser, type CurrentUser } from './api/users'
 
 const PAGE_TITLES: Record<AppPage, string> = {
@@ -23,41 +25,37 @@ const PROTECTED_PAGES: AppPage[] = ['my-project', 'admin-students']
 const DEFAULT_PROTECTED_PAGE: AppPage = 'my-project'
 
 function App() {
-  // Se inicializa leyendo localStorage: si ya habia un token guardado de
-  // una sesion anterior, no te manda al login de nuevo al recargar.
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem('access_token'),
-  )
-
   // "entered" separa la landing (publica, sin chrome de app) del resto.
-  // Persiste en localStorage igual que el token: sin esto, refrescar la
-  // pagina te mandaba de vuelta a la landing SIEMPRE, incluso con sesion
-  // iniciada (el token si sobrevivia al refresh, pero "ya pase la landing"
-  // no) - una vez que se cruza, no vuelve a aparecer en este navegador.
+  // Persiste en localStorage: sin esto, refrescar la pagina te mandaba de
+  // vuelta a la landing SIEMPRE, incluso con sesion iniciada - una vez que
+  // se cruza, no vuelve a aparecer en este navegador.
   const [entered, setEntered] = useState(() => localStorage.getItem('entered') === 'true')
 
-  // Se resuelve una sola vez aca (no en cada pantalla que lo necesite) para
-  // no repetir la misma llamada a /users/me en Proyectos, en el sidebar,
-  // etc. - un solo lugar trae el usuario, el resto solo lo lee.
+  // El token ya no es legible desde JS (cookie httpOnly) - la unica forma
+  // de saber si hay sesion iniciada es preguntarle al backend. isAuthChecked
+  // separa "todavia no sabemos" de "sabemos que no hay sesion", para no
+  // mostrar login/nav de invitado por un instante en cada carga de pagina
+  // mientras la cookie (si existe) todavia se esta validando.
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
-  useEffect(() => {
-    if (!token) {
-      setCurrentUser(null)
-      return
-    }
-    let cancelled = false
-    getCurrentUser(token)
+  const [isAuthChecked, setIsAuthChecked] = useState(false)
+  const isAuthenticated = currentUser !== null
+  const isAdmin = currentUser?.roles.includes('admin') ?? false
+
+  function checkSession() {
+    return getCurrentUser()
       .then((user) => {
-        if (!cancelled) setCurrentUser(user)
+        setCurrentUser(user)
+        return user
       })
       .catch(() => {
-        if (!cancelled) setCurrentUser(null)
+        setCurrentUser(null)
+        return null
       })
-    return () => {
-      cancelled = true
-    }
-  }, [token])
-  const isAdmin = currentUser?.roles.includes('admin') ?? false
+  }
+
+  useEffect(() => {
+    checkSession().finally(() => setIsAuthChecked(true))
+  }, [])
 
   function handleEnter() {
     localStorage.setItem('entered', 'true')
@@ -69,32 +67,35 @@ function App() {
   // pena introducir react-router.
   const [page, setPage] = useState<AppPage>('home')
 
-  // Cuando alguien sin token toca "Mi Proyecto", en vez de mostrar esa
+  // Cuando alguien sin sesion toca "Mi Proyecto", en vez de mostrar esa
   // pantalla mostramos LoginPage completo (no un formulario incrustado en
   // el AppShell). Este estado recuerda a donde volver despues de loguearse.
   const [loginTarget, setLoginTarget] = useState<AppPage | null>(null)
 
   // LoginPage solo llama esto cuando el usuario ya puede entrar de verdad
   // (login directo, o despues de completar el cambio de clave obligatorio).
-  function handleAuthenticated(newToken: string, newRefreshToken: string) {
-    localStorage.setItem('access_token', newToken)
-    localStorage.setItem('refresh_token', newRefreshToken)
-    setToken(newToken)
+  // La cookie de sesion ya quedo puesta por el backend - lo unico que falta
+  // es traer el usuario para saber quien es (isAdmin, nombre en la sidebar).
+  async function handleAuthenticated() {
+    await checkSession()
     setPage(loginTarget ?? DEFAULT_PROTECTED_PAGE)
     setLoginTarget(null)
   }
 
   function handleLogout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    setToken(null)
-    // "Mi Proyecto" ya no es visitable sin token - vuelve al archivo publico
-    // en vez de dejar al usuario mirando una pantalla que ya no le pertenece.
+    // Best-effort: aunque el pedido falle (red caida, etc.), igual limpiamos
+    // el estado local - la cookie expira sola en unos minutos si el borrado
+    // en el servidor no llego a completarse.
+    logoutRequest().catch(() => {})
+    setCurrentUser(null)
+    // "Mi Proyecto" ya no es visitable sin sesion - vuelve al archivo
+    // publico en vez de dejar al usuario mirando una pantalla que ya no le
+    // pertenece.
     setPage('home')
   }
 
   function handleNavigate(target: AppPage) {
-    if (PROTECTED_PAGES.includes(target) && !token) {
+    if (PROTECTED_PAGES.includes(target) && !isAuthenticated) {
       setLoginTarget(target)
       return
     }
@@ -111,11 +112,15 @@ function App() {
   // vez de por un valor de retorno, porque el fallo puede pasar en
   // cualquier llamada a la API, no solo en una accion puntual del usuario.
   useEffect(() => {
-    onSessionExpired(handleLogout)
+    onSessionExpired(() => setCurrentUser(null))
   }, [])
 
   if (!entered) {
     return <LandingPage onEnter={handleEnter} />
+  }
+
+  if (!isAuthChecked) {
+    return <Spinner label="Cargando sesión…" />
   }
 
   if (loginTarget) {
@@ -126,18 +131,16 @@ function App() {
     <AppShell
       title={PAGE_TITLES[page]}
       activePage={page}
-      isAuthenticated={token !== null}
+      isAuthenticated={isAuthenticated}
       isAdmin={isAdmin}
       currentUser={currentUser}
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
-      {page === 'home' && (
-        <HomePage token={token} onExploreProjects={() => handleNavigate('projects')} />
-      )}
-      {page === 'projects' && <ProjectsPage token={token} isAdmin={isAdmin} />}
-      {page === 'my-project' && token && <MyProjectPage token={token} />}
-      {page === 'admin-students' && token && isAdmin && <AdminStudentsPage token={token} />}
+      {page === 'home' && <HomePage onExploreProjects={() => handleNavigate('projects')} />}
+      {page === 'projects' && <ProjectsPage isAdmin={isAdmin} />}
+      {page === 'my-project' && isAuthenticated && <MyProjectPage />}
+      {page === 'admin-students' && isAuthenticated && isAdmin && <AdminStudentsPage />}
     </AppShell>
   )
 }

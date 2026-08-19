@@ -7,7 +7,6 @@ import { ApiError } from '../api/client'
 import './HomePage.css'
 
 interface HomePageProps {
-  token: string | null
   onExploreProjects: () => void
 }
 
@@ -47,7 +46,7 @@ const QUOTE_FADE_MS = 400
 // pantalla que lo adopta. Estudiantes activos no tiene de donde salir
 // todavia (no existe un endpoint que liste usuarios) - se muestra como
 // placeholder explicito en vez de inventar un numero.
-export function HomePage({ token, onExploreProjects }: HomePageProps) {
+export function HomePage({ onExploreProjects }: HomePageProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -80,7 +79,7 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
       setLoading(true)
       setError(null)
       try {
-        const data = await listProjects(token)
+        const data = await listProjects()
         if (!cancelled) setProjects(data)
       } catch (err) {
         if (!cancelled) {
@@ -95,7 +94,7 @@ export function HomePage({ token, onExploreProjects }: HomePageProps) {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [])
 
   const publishedCount = projects.filter((project) => project.status === 'published').length
   const recentProjects = projects.slice(0, 3)

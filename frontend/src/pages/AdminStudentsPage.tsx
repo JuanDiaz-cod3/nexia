@@ -18,20 +18,17 @@ import {
 import { ApiError } from '../api/client'
 import './AdminStudentsPage.css'
 
-interface AdminStudentsPageProps {
-  token: string
-}
-
 interface StudentDraft {
   full_name: string
   email: string
+  section_name: string
 }
 
 const MIN_GROUP_SIZE = 1
 const MAX_GROUP_SIZE = 8
 
 function emptyDraft(): StudentDraft {
-  return { full_name: '', email: '' }
+  return { full_name: '', email: '', section_name: '' }
 }
 
 // --- Tipos y helpers del modo "agregar a grupo existente" ---
@@ -40,6 +37,7 @@ interface NewSlot {
   mode: 'new'
   full_name: string
   email: string
+  section_name: string
 }
 
 interface ExistingSlot {
@@ -54,7 +52,7 @@ interface ExistingSlot {
 type Slot = NewSlot | ExistingSlot
 
 function emptyNewSlot(): NewSlot {
-  return { mode: 'new', full_name: '', email: '' }
+  return { mode: 'new', full_name: '', email: '', section_name: '' }
 }
 
 function emptyExistingSlot(): ExistingSlot {
@@ -68,11 +66,10 @@ function emptyExistingSlot(): ExistingSlot {
 // agrega automaticamente al resto del grupo como integrantes), o agregar
 // integrantes a un grupo que ya existe (mezclando estudiantes nuevos con
 // estudiantes que ya tienen cuenta).
-export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
+export function AdminStudentsPage() {
   const [mode, setMode] = useState<'new-group' | 'existing-group'>('new-group')
 
   // --- Modo "grupo nuevo" ---
-  const [sectionName, setSectionName] = useState('')
   const [groupSize, setGroupSize] = useState(String(MIN_GROUP_SIZE))
   const [students, setStudents] = useState<StudentDraft[]>([emptyDraft()])
   const [result, setResult] = useState<StudentGroupCreateOut | null>(null)
@@ -95,7 +92,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
   useEffect(() => {
     if (mode !== 'existing-group') return
     let cancelled = false
-    listSections(token)
+    listSections()
       .then((data) => {
         if (!cancelled) setSections(data)
       })
@@ -107,7 +104,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
     return () => {
       cancelled = true
     }
-  }, [mode, token])
+  }, [mode])
 
   useEffect(() => {
     if (selectedSectionId === null) {
@@ -116,7 +113,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
     }
     let cancelled = false
     setGroupsLoading(true)
-    listStudentGroups(token, selectedSectionId)
+    listStudentGroups(selectedSectionId)
       .then((data) => {
         if (!cancelled) setGroupsInSection(data)
       })
@@ -129,7 +126,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
     return () => {
       cancelled = true
     }
-  }, [selectedSectionId, token])
+  }, [selectedSectionId])
 
   function handleGroupSizeChange(rawValue: string) {
     if (rawValue === '') {
@@ -156,7 +153,6 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
   }
 
   function resetForm() {
-    setSectionName('')
     setGroupSize(String(MIN_GROUP_SIZE))
     setStudents([emptyDraft()])
     setResult(null)
@@ -168,10 +164,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
     setSubmitError(null)
     setSubmitLoading(true)
     try {
-      const created = await createStudentGroup(token, {
-        section_name: sectionName,
-        students,
-      })
+      const created = await createStudentGroup({ students })
       setResult(created)
     } catch (err) {
       setSubmitError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.')
@@ -182,13 +175,10 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
 
   async function handleCopyAll() {
     if (!result) return
-    const lines = [
-      `Sección: ${result.section_name}`,
-      '',
-      ...result.students.map(
-        (s) => `${s.full_name} — usuario: ${s.username} — contraseña temporal: ${s.temporary_password}`,
-      ),
-    ]
+    const lines = result.students.map(
+      (s) =>
+        `${s.full_name} — usuario: ${s.username} — contraseña temporal: ${s.temporary_password} — sección: ${s.section_name}`,
+    )
     await navigator.clipboard.writeText(lines.join('\n'))
     setCopied(true)
   }
@@ -218,7 +208,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
     )
   }
 
-  function updateAddNewSlot(index: number, field: 'full_name' | 'email', value: string) {
+  function updateAddNewSlot(index: number, field: 'full_name' | 'email' | 'section_name', value: string) {
     setAddSlots((prev) =>
       prev.map((s, i) => (i === index && s.mode === 'new' ? { ...s, [field]: value } : s)),
     )
@@ -239,7 +229,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
       ),
     )
     try {
-      const results = await searchStudents(token, slot.query)
+      const results = await searchStudents(slot.query)
       setAddSlots((prev) =>
         prev.map((s, i) => (i === index && s.mode === 'existing' ? { ...s, results, searching: false } : s)),
       )
@@ -287,10 +277,10 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
     setSubmitError(null)
     setSubmitLoading(true)
     try {
-      const addedResult = await addGroupMembers(token, selectedGroupId, {
+      const addedResult = await addGroupMembers(selectedGroupId, {
         new_students: addSlots
           .filter((s): s is NewSlot => s.mode === 'new')
-          .map(({ full_name, email }) => ({ full_name, email })),
+          .map(({ full_name, email, section_name }) => ({ full_name, email, section_name })),
         existing_student_ids: addSlots
           .filter((s): s is ExistingSlot => s.mode === 'existing' && s.selected !== null)
           .map((s) => s.selected!.id),
@@ -331,11 +321,12 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
             Guardá esta información ahora — las contraseñas no se pueden volver a mostrar
             después de salir de esta pantalla.
           </p>
-          <h2>Grupo creado en {result.section_name}</h2>
+          <h2>Grupo creado ({[...new Set(result.students.map((s) => s.section_name))].join(', ')})</h2>
           <table className="admin-students-table">
             <thead>
               <tr>
                 <th>Nombre</th>
+                <th>Sección</th>
                 <th>Usuario</th>
                 <th>Contraseña temporal</th>
               </tr>
@@ -344,6 +335,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
               {result.students.map((s) => (
                 <tr key={s.id}>
                   <td>{s.full_name}</td>
+                  <td>{s.section_name}</td>
                   <td>{s.username}</td>
                   <td className="admin-students-password">{s.temporary_password}</td>
                 </tr>
@@ -381,6 +373,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
                 <thead>
                   <tr>
                     <th>Nombre</th>
+                    <th>Sección</th>
                     <th>Usuario</th>
                     <th>Contraseña temporal</th>
                   </tr>
@@ -389,6 +382,7 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
                   {addResult.added_new.map((s) => (
                     <tr key={s.id}>
                       <td>{s.full_name}</td>
+                      <td>{s.section_name}</td>
                       <td>{s.username}</td>
                       <td className="admin-students-password">{s.temporary_password}</td>
                     </tr>
@@ -442,12 +436,6 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
         <Card className="admin-students-form-card">
           <form className="admin-students-form" onSubmit={handleSubmit}>
             <Input
-              label="Sección (ej. 11°A)"
-              value={sectionName}
-              onChange={(event) => setSectionName(event.target.value)}
-              required
-            />
-            <Input
               label="Cantidad de estudiantes en el grupo"
               type="number"
               min={MIN_GROUP_SIZE}
@@ -472,6 +460,12 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
                     type="email"
                     value={student.email}
                     onChange={(event) => updateStudent(index, 'email', event.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Sección (ej. 11°A)"
+                    value={student.section_name}
+                    onChange={(event) => updateStudent(index, 'section_name', event.target.value)}
                     required
                   />
                 </div>
@@ -589,6 +583,11 @@ export function AdminStudentsPage({ token }: AdminStudentsPageProps) {
                             type="email"
                             value={slot.email}
                             onChange={(event) => updateAddNewSlot(index, 'email', event.target.value)}
+                          />
+                          <Input
+                            label="Sección (ej. 11°A)"
+                            value={slot.section_name}
+                            onChange={(event) => updateAddNewSlot(index, 'section_name', event.target.value)}
                           />
                         </>
                       ) : slot.selected ? (

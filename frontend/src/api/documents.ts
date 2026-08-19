@@ -9,27 +9,20 @@ export interface Document {
   url: string
 }
 
-// Sin token: listar documentos es publico, igual que /projects (ver
-// CLAUDE.md). Se acepta null/undefined para las pantallas sin sesion.
-export function listDocuments(projectId: number, token?: string | null): Promise<Document[]> {
-  return apiFetch<Document[]>(`/projects/${projectId}/documents`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
+// Listar documentos es publico, igual que /projects (ver CLAUDE.md).
+export function listDocuments(projectId: number): Promise<Document[]> {
+  return apiFetch<Document[]>(`/projects/${projectId}/documents`)
 }
 
-export function uploadDocument(token: string, projectId: number, file: File): Promise<Document> {
+export function uploadDocument(projectId: number, file: File): Promise<Document> {
   const formData = new FormData()
   formData.append('file', file)
   return apiFetch<Document>(`/projects/${projectId}/documents`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   })
 }
 
-export function deleteDocument(token: string, documentId: number): Promise<void> {
-  return apiFetch<void>(`/documents/${documentId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  })
+export function deleteDocument(documentId: number): Promise<void> {
+  return apiFetch<void>(`/documents/${documentId}`, { method: 'DELETE' })
 }

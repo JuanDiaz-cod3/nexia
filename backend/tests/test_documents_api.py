@@ -76,7 +76,7 @@ def test_upload_document_requires_membership_or_admin(client, db_session):
     response = client.post(
         f"/api/v1/projects/{project.id}/documents",
         files={"file": ("informe.pdf", b"contenido falso", "application/pdf")},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 403
@@ -99,7 +99,7 @@ def test_upload_document_rejects_disallowed_file_type(client, db_session, monkey
     response = client.post(
         f"/api/v1/projects/{project.id}/documents",
         files={"file": ("virus.exe", b"contenido falso", "application/x-msdownload")},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 400
@@ -121,7 +121,7 @@ def test_upload_document_rejects_file_over_25mb(client, db_session, monkeypatch)
     response = client.post(
         f"/api/v1/projects/{project.id}/documents",
         files={"file": ("informe.pdf", oversized, "application/pdf")},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 400
@@ -144,7 +144,7 @@ def test_upload_document_success_stores_row_and_calls_storage(client, db_session
     response = client.post(
         f"/api/v1/projects/{project.id}/documents",
         files={"file": ("informe.pdf", b"contenido falso", "application/pdf")},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 201
@@ -192,7 +192,7 @@ def test_delete_document_requires_membership_or_admin(client, db_session, monkey
     token = create_access_token(outsider.id)
     response = client.delete(
         f"/api/v1/documents/{document.id}",
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 403
@@ -223,7 +223,7 @@ def test_admin_can_delete_document_on_project_they_do_not_belong_to(client, db_s
     token = create_access_token(admin.id)
     response = client.delete(
         f"/api/v1/documents/{document.id}",
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 204

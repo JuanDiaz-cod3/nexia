@@ -42,7 +42,7 @@ describe('ProjectsPage', () => {
   it('muestra los proyectos después de cargar', async () => {
     mockedList.mockResolvedValueOnce([makeProject()])
 
-    render(<ProjectsPage token={null} isAdmin={false} />)
+    render(<ProjectsPage isAdmin={false} />)
 
     expect(screen.getByText('Cargando proyectos…')).toBeInTheDocument()
     expect(await screen.findByText('Energía solar en el colegio')).toBeInTheDocument()
@@ -52,7 +52,7 @@ describe('ProjectsPage', () => {
   it('muestra el mensaje de error si listProjects falla', async () => {
     mockedList.mockRejectedValueOnce(new ApiError('No se pudo conectar con el servidor.', 'unknown_error', 500))
 
-    render(<ProjectsPage token={null} isAdmin={false} />)
+    render(<ProjectsPage isAdmin={false} />)
 
     expect(await screen.findByText('No se pudo conectar con el servidor.')).toBeInTheDocument()
   })
@@ -60,7 +60,7 @@ describe('ProjectsPage', () => {
   it('muestra el mensaje de lista vacía cuando no hay proyectos', async () => {
     mockedList.mockResolvedValueOnce([])
 
-    render(<ProjectsPage token={null} isAdmin={false} />)
+    render(<ProjectsPage isAdmin={false} />)
 
     expect(await screen.findByText('Aún no hay proyectos registrados.')).toBeInTheDocument()
   })
@@ -68,7 +68,7 @@ describe('ProjectsPage', () => {
   it('un usuario no-admin no ve controles de editar/borrar', async () => {
     mockedList.mockResolvedValueOnce([makeProject()])
 
-    render(<ProjectsPage token="token-estudiante" isAdmin={false} />)
+    render(<ProjectsPage isAdmin={false} />)
 
     await screen.findByText('Energía solar en el colegio')
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument()
@@ -80,7 +80,7 @@ describe('ProjectsPage', () => {
     mockedList.mockResolvedValueOnce([makeProject()])
     mockedUpdate.mockResolvedValueOnce(makeProject({ title: 'Título editado' }))
 
-    render(<ProjectsPage token="token-admin" isAdmin />)
+    render(<ProjectsPage isAdmin />)
     await screen.findByText('Energía solar en el colegio')
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -95,11 +95,7 @@ describe('ProjectsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Título editado')).toBeInTheDocument()
     })
-    expect(mockedUpdate).toHaveBeenCalledWith(
-      'token-admin',
-      1,
-      expect.objectContaining({ title: 'Título editado' }),
-    )
+    expect(mockedUpdate).toHaveBeenCalledWith(1, expect.objectContaining({ title: 'Título editado' }))
   })
 
   it('un admin borra un proyecto tras confirmar', async () => {
@@ -107,7 +103,7 @@ describe('ProjectsPage', () => {
     mockedList.mockResolvedValueOnce([makeProject()])
     mockedDelete.mockResolvedValueOnce(undefined)
 
-    render(<ProjectsPage token="token-admin" isAdmin />)
+    render(<ProjectsPage isAdmin />)
     await screen.findByText('Energía solar en el colegio')
 
     await user.click(screen.getByRole('button', { name: 'Borrar' }))
@@ -117,7 +113,7 @@ describe('ProjectsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sí, borrar' }))
 
     await waitFor(() => {
-      expect(mockedDelete).toHaveBeenCalledWith('token-admin', 1)
+      expect(mockedDelete).toHaveBeenCalledWith(1)
     })
     expect(screen.queryByText('Energía solar en el colegio')).not.toBeInTheDocument()
   })
@@ -135,10 +131,10 @@ describe('ProjectsPage', () => {
       },
     ])
 
-    render(<ProjectsPage token={null} isAdmin={false} />)
+    render(<ProjectsPage isAdmin={false} />)
 
     expect(await screen.findByText('informe.pdf')).toBeInTheDocument()
-    expect(mockedListDocuments).toHaveBeenCalledWith(1, null)
+    expect(mockedListDocuments).toHaveBeenCalledWith(1)
     expect(within(screen.getByRole('list')).queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
   })
 
@@ -157,7 +153,7 @@ describe('ProjectsPage', () => {
     ])
     mockedDeleteDocument.mockResolvedValueOnce(undefined)
 
-    render(<ProjectsPage token="token-admin" isAdmin />)
+    render(<ProjectsPage isAdmin />)
     await screen.findByText('informe.pdf')
 
     // "Borrar"/"Sí, borrar" tambien son los nombres de los botones para
@@ -168,7 +164,7 @@ describe('ProjectsPage', () => {
     await user.click(within(documentList).getByRole('button', { name: 'Sí, borrar' }))
 
     await waitFor(() => {
-      expect(mockedDeleteDocument).toHaveBeenCalledWith('token-admin', 9)
+      expect(mockedDeleteDocument).toHaveBeenCalledWith(9)
     })
     expect(screen.queryByText('informe.pdf')).not.toBeInTheDocument()
   })

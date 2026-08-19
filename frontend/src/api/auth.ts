@@ -1,9 +1,8 @@
 import { apiFetch } from './client'
 
 export interface LoginResponse {
-  access_token: string
-  refresh_token: string
-  token_type: string
+  // Los tokens ya no viajan en el body - login los manda como cookies
+  // httpOnly, invisibles para JS (ver app/core/cookies.py en el backend).
   must_change_password: boolean
 }
 
@@ -19,13 +18,17 @@ export interface ChangePasswordResponse {
 }
 
 export function changePassword(
-  token: string,
   currentPassword: string,
   newPassword: string,
 ): Promise<ChangePasswordResponse> {
   return apiFetch<ChangePasswordResponse>('/auth/change-password', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   })
+}
+
+// JS no puede borrar una cookie httpOnly - logout tiene que ser un pedido
+// al backend que la borre desde el servidor (Set-Cookie con Max-Age=0).
+export function logout(): Promise<{ detail: string }> {
+  return apiFetch<{ detail: string }>('/auth/logout', { method: 'POST' })
 }
