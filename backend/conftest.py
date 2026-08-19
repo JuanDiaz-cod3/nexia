@@ -8,6 +8,20 @@ os.environ["DATABASE_URL"] = (
     "postgresql+psycopg://innovalab:innovalab@localhost:5433/innovalab_test"
 )
 
+# Estos tres son "required" en Settings (sin default) - localmente pasaban
+# "de colado" leyendo el .env real (pydantic-settings cae a env_file si no
+# estan en os.environ), pero en GitHub Actions no existe ningun .env, asi
+# que Settings() explotaba al importar la app y el CI nunca llego a correr
+# ni un test (descubierto recien ahora, simulando la ausencia de .env en
+# local). setdefault, no asignacion directa: si alguna vez SI estan en el
+# entorno (ej. alguien las exporta a mano), no las pisa. Los tests nunca
+# llaman a Storage de verdad (se mockea storage.upload_file/delete_file),
+# asi que el valor de las de Supabase no importa - solo tienen que existir
+# para que Settings() no falle al construirse.
+os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-not-for-production")
+os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
+os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-only-key-not-for-production")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
