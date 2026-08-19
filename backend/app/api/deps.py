@@ -2,6 +2,8 @@
 # automaticamente via Depends(...) antes de correr el codigo del endpoint,
 # y si alguna lanza una excepcion, el endpoint ni siquiera llega a correr.
 
+import logging
+
 import jwt as pyjwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -10,6 +12,8 @@ from sqlalchemy.orm import Session
 from app.core.jwt import decode_access_token
 from app.db.session import get_db
 from app.models import AcademicYear, User
+
+logger = logging.getLogger("innovalab.auth")
 
 # HTTPBearer lee el header "Authorization: Bearer <token>" y separa el
 # token del prefijo "Bearer " por nosotros.
@@ -23,6 +27,9 @@ def get_current_user(
     try:
         user_id = decode_access_token(credentials.credentials)
     except pyjwt.PyJWTError:
+        # Sin username todavia (el token ni siquiera se pudo leer) - lo
+        # unico identificable es que alguien mando un token invalido/vencido.
+        logger.warning("invalid_or_expired_token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"detail": "Token inválido o vencido", "code": "invalid_token"},
@@ -30,6 +37,10 @@ def get_current_user(
 
     user = db.get(User, user_id)
     if user is None:
+        # Token con firma valida pero para un user_id que ya no existe
+        # (cuenta borrada) - distinto del caso de arriba, vale la pena
+        # poder diferenciarlos en los logs.
+        logger.warning("token_valid_but_user_not_found user_id=%s", user_id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"detail": "Usuario no encontrado", "code": "invalid_token"},

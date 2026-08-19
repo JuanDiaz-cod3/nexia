@@ -228,6 +228,34 @@ jurados, documentos y premios queda fuera de este corte a propósito.
   via `-r`) y corre `pytest`. `frontend`: `npm ci`, `npm run lint` (oxlint) y
   `vitest run`. No se agregó linter de Python — no había ninguno configurado en el
   backend y sumar uno es una dependencia nueva que no se pidió.
+- **Auditoría de seguridad (skill `cyber-neo`) y primeras correcciones:** corrida completa
+  (5 subagentes en paralelo: dependencias, código, secretos, config/infra, supply
+  chain/CI) sobre todo el repo. Riesgo medio (29/100), sin críticos — reporte completo en
+  `~/Desktop/cyber-neo-report-NEXIA-2026-08-18.md`. Se corrigieron las 3 prioridades:
+  - **Logging de fallos de auth:** `logging.basicConfig` en `main.py`, y
+    `logger.warning(...)` en `auth.py` (login, refresh, change-password) y `deps.py`
+    (token inválido/vencido, usuario no encontrado) — antes un intento de fuerza bruta
+    o un token corrupto no dejaba ningún rastro en el servidor.
+  - **Security headers:** `SecurityHeadersMiddleware` nuevo en `main.py`
+    (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) — sin HSTS a
+    propósito, no tiene sentido hasta que la app corra sobre HTTPS real.
+  - **CI hardening (`ci.yml`):** bloque `permissions: contents: read` a nivel de
+    workflow; las 3 GitHub Actions pineadas a SHA completo (resuelto contra el remoto
+    real de GitHub, no inventado) en vez de tag mutable; paso nuevo de `pip-audit` en el
+    job de backend.
+  - **CVE real encontrado y arreglado:** `pip-audit` detectó `PYSEC-2026-1845` en
+    `pytest==8.4.2` (dependencia de dev). Se subió a `pytest==9.0.3` — probado que no
+    rompe nada (38/38 tests) antes de fijarlo en `requirements-dev.txt`.
+  - Quedan pendientes del reporte (bajo impacto, no urgentes): rate limiting en
+    `/auth/login`, contraseña hardcodeada en `backend/scripts/create_admin.py`, puerto
+    de la Postgres de test bound a `0.0.0.0` en vez de `127.0.0.1`.
+  - **Incidente durante esta ronda:** se detectó que `AdminStudentsPage.tsx` había
+    perdido todo el modo "agregar a grupo existente" (imports, estado, handlers, JSX) —
+    edición accidental en el editor, no relacionada con la auditoría. Restaurado con
+    `git checkout -- ...` antes de seguir; verificado que los 32 tests de frontend
+    siguen pasando.
+
+## Qué falta — dentro del alcance de este corte
 
 - [x] Pantalla real para "Estudiantes" en el sidebar — resuelto como "Mi Proyecto"
   (`MyProjectPage`), separada de `ProjectsPage`.
@@ -236,10 +264,14 @@ jurados, documentos y premios queda fuera de este corte a propósito.
 - [x] `DELETE /projects/{id}` — implementado, cualquier integrante puede borrar.
 - [x] Expiración del access token + refresh token — implementados y verificados en vivo
   (ver arriba).
-- [ ] Testing: arrancado en backend (ver arriba — Docker + pytest, 3 tests sobre el
-  constraint de un-proyecto-por-año). Falta: tests de auth (login/refresh), del resto
-  de endpoints de `projects`, y testing de frontend (todavía sin Vitest instalado).
-- [ ] CI: no hay pipeline configurado (ni lint ni tests corren automáticamente).
+- [x] Testing de auth (`test_auth.py`) y de frontend (Vitest + RTL, 32 tests) —
+  ver arriba. Falta: búsqueda de estudiante existente en `AdminStudentsPage`, botones
+  de "Copiar" (clipboard), `HomePage`/`LandingPage`, y resto de endpoints de `projects`.
+- [x] CI (`ci.yml`, dos jobs en paralelo + `pip-audit`) — ver arriba. Falta confirmar
+  que corre bien en GitHub tras el próximo push.
+- [x] Auditoría de seguridad (`cyber-neo`) y correcciones de las 3 prioridades — ver
+  arriba. Quedan pendientes de bajo impacto: rate limiting en login, contraseña
+  hardcodeada en `create_admin.py`, puerto de la Postgres de test.
 - [ ] Deploy real: nada desplegado aún. Vercel/Render/Supabase están decididos como plan
   en `CLAUDE.md` pero no ejecutados — sigue corriendo todo en local.
 - [ ] Revisar responsive y accesibilidad de `ProjectsPage`, `MyProjectPage` y `AppShell`

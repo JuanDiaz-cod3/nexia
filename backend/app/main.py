@@ -1,6 +1,9 @@
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
@@ -8,6 +11,16 @@ from app.api.v1.health import router as health_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.users import router as users_router
 from app.core.config import settings
+
+# Sin esto, los logger.warning(...) de auth.py/deps.py igual aparecerian
+# (el "handler de ultimo recurso" de Python manda WARNING+ a stderr por
+# default), pero sin timestamp ni nombre de logger - dificil de leer en
+# los logs de Render/Railway. basicConfig le da formato una sola vez, al
+# arrancar la app.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 app = FastAPI(title="InnovaLab API")
 
@@ -18,6 +31,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Cabeceras de seguridad basicas que FastAPI no manda por defecto (no hay
+# equivalente a helmet() aca). No incluye HSTS a proposito: solo tiene
+# sentido una vez que la app corra sobre HTTPS de verdad, y hoy sigue
+# siendo local/HTTP (ver CLAUDE.md, deploy todavia no ejecutado).
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Fuerza el formato de error estandar del CLAUDE.md ({"detail", "code"}) en

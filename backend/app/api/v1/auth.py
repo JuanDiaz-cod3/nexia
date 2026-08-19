@@ -1,3 +1,5 @@
+import logging
+
 import jwt as pyjwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -15,6 +17,8 @@ from app.schemas.auth import (
     RefreshResponse,
 )
 
+logger = logging.getLogger("innovalab.auth")
+
 router = APIRouter()
 
 
@@ -26,8 +30,10 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
     user = db.query(User).filter_by(username=payload.username).first()
 
     # Mismo mensaje generico si el usuario no existe o si la password esta
-    # mal: no le decimos a un atacante cual de las dos cosas fallo.
+    # mal: no le decimos a un atacante cual de las dos cosas fallo. El log
+    # si puede diferenciarlas (nos sirve a nosotros, no se expone al cliente).
     if user is None or not verify_password(payload.password, user.password_hash):
+        logger.warning("login_failed username=%s", payload.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"detail": "Usuario o contraseña incorrectos", "code": "invalid_credentials"},
@@ -47,6 +53,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> RefreshRe
     try:
         user_id = decode_refresh_token(payload.refresh_token)
     except pyjwt.PyJWTError:
+        logger.warning("refresh_failed reason=invalid_or_expired_token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"detail": "Refresh token inválido o vencido", "code": "invalid_refresh_token"},
@@ -54,6 +61,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> RefreshRe
 
     user = db.get(User, user_id)
     if user is None:
+        logger.warning("refresh_failed reason=user_not_found user_id=%s", user_id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"detail": "Usuario no encontrado", "code": "invalid_refresh_token"},
@@ -73,6 +81,7 @@ def change_password(
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
     if not verify_password(payload.current_password, current_user.password_hash):
+        logger.warning("change_password_failed user_id=%s", current_user.id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"detail": "Contraseña actual incorrecta", "code": "invalid_credentials"},
