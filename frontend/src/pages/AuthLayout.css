@@ -248,8 +248,15 @@
     display: flex;
   }
 
+  /* Sin esto, el translateX(100%) del slide de escritorio (regla de arriba,
+     fuera de este media query) sigue ganando por especificidad sobre el
+     "transform: none" generico de .auth-form-panel de aca abajo - el panel
+     de reset queda pintado una pantalla entera a la derecha, y el foco
+     automatico al h1 (LoginPage.tsx) scrollea el contenedor para alcanzarlo,
+     lo que arrastra el panel azul fuera de pantalla (hallazgo real de Juan). */
   .auth-page.step-reset .auth-form-panel--reset {
     display: flex;
+    transform: none;
     animation: none;
   }
 
