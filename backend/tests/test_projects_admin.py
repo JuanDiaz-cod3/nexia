@@ -59,7 +59,7 @@ def test_admin_can_edit_project_they_do_not_belong_to(client, db_session):
     response = client.patch(
         f"/api/v1/projects/{project.id}",
         json={"title": "Editado por el admin"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 200
@@ -75,7 +75,7 @@ def test_admin_can_delete_project_they_do_not_belong_to(client, db_session):
     token = create_access_token(admin.id)
     response = client.delete(
         f"/api/v1/projects/{project.id}",
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 204
@@ -91,7 +91,7 @@ def test_non_member_non_admin_cannot_edit_project(client, db_session):
     response = client.patch(
         f"/api/v1/projects/{project.id}",
         json={"title": "No deberia poder"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 403

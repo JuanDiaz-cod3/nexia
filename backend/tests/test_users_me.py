@@ -38,7 +38,7 @@ def test_admin_has_no_section_or_group(client, db_session):
     db_session.commit()
 
     token = create_access_token(admin.id)
-    response = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/users/me", cookies={"access_token": token})
 
     assert response.status_code == 200
     body = response.json()
@@ -79,7 +79,7 @@ def test_student_gets_section_and_per_section_group_number(client, db_session):
     db_session.commit()
 
     token = create_access_token(student.id)
-    response = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/users/me", cookies={"access_token": token})
 
     assert response.status_code == 200
     body = response.json()
@@ -111,7 +111,7 @@ def test_student_with_section_but_no_group_yet(client, db_session):
     db_session.commit()
 
     token = create_access_token(student.id)
-    response = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/users/me", cookies={"access_token": token})
 
     assert response.status_code == 200
     body = response.json()
