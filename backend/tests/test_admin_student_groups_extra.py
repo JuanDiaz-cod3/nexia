@@ -84,13 +84,13 @@ def test_list_sections_and_groups(client, db_session):
 
     token = create_access_token(admin.id)
 
-    sections_resp = client.get("/api/v1/admin/sections", headers={"Authorization": f"Bearer {token}"})
+    sections_resp = client.get("/api/v1/admin/sections", cookies={"access_token": token})
     assert sections_resp.status_code == 200
     assert sections_resp.json() == [{"id": section.id, "name": "11°A"}]
 
     groups_resp = client.get(
         f"/api/v1/admin/student-groups?section_id={section.id}",
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
     assert groups_resp.status_code == 200
     body = groups_resp.json()
@@ -118,7 +118,7 @@ def test_search_students_flags_already_in_group(client, db_session):
 
     token = create_access_token(admin.id)
     response = client.get(
-        "/api/v1/admin/students/search?q=search", headers={"Authorization": f"Bearer {token}"}
+        "/api/v1/admin/students/search?q=search", cookies={"access_token": token}
     )
 
     assert response.status_code == 200
@@ -149,16 +149,19 @@ def test_add_new_and_existing_members_to_group(client, db_session):
     response = client.post(
         f"/api/v1/admin/student-groups/{group.id}/members",
         json={
-            "new_students": [{"full_name": "Nuevo Uno", "email": "nuevo.uno@lasalle.edu.co"}],
+            "new_students": [
+                {"full_name": "Nuevo Uno", "email": "nuevo.uno@lasalle.edu.co", "section_name": "11°C"}
+            ],
             "existing_student_ids": [free_student.id],
         },
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert len(body["added_new"]) == 1
     assert body["added_new"][0]["username"] == "nuevo.uno"
+    assert body["added_new"][0]["section_name"] == "11°C"
     assert len(body["added_existing"]) == 1
     assert body["added_existing"][0]["id"] == free_student.id
 
@@ -166,6 +169,50 @@ def test_add_new_and_existing_members_to_group(client, db_session):
         db_session.query(StudentGroupMember).filter_by(group_id=group.id).all()
     )
     assert len(all_members) == 3
+
+
+def test_add_new_member_from_different_section_to_existing_group(client, db_session):
+    # Mismo caso real que test_group_mixes_students_from_different_sections,
+    # pero por el camino de "agregar a grupo existente": un grupo ya
+    # armado en 11°H puede sumar un estudiante NUEVO de 11°I sin que el
+    # backend lo fuerce a la seccion de referencia del grupo.
+    school, academic_year = _make_school_year(db_session)
+    admin = _make_admin(db_session, school)
+    section_h = Section(school_id=school.id, academic_year_id=academic_year.id, name="11°H")
+    db_session.add(section_h)
+    db_session.flush()
+    group = StudentGroup(school_id=school.id, academic_year_id=academic_year.id, section_id=section_h.id)
+    db_session.add(group)
+    db_session.flush()
+    original_member = _make_student(db_session, school, section_h, "original.h")
+    db_session.add(
+        StudentGroupMember(
+            group_id=group.id, user_id=original_member.id, academic_year_id=academic_year.id
+        )
+    )
+    db_session.commit()
+
+    token = create_access_token(admin.id)
+    response = client.post(
+        f"/api/v1/admin/student-groups/{group.id}/members",
+        json={
+            "new_students": [
+                {"full_name": "De Once I", "email": "once.i@lasalle.edu.co", "section_name": "11°I"}
+            ],
+            "existing_student_ids": [],
+        },
+        cookies={"access_token": token},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["added_new"][0]["section_name"] == "11°I"
+    # El grupo se sigue "archivando" bajo su seccion de referencia original
+    # (11°H) - agregar un integrante nuevo no la cambia.
+    assert body["section_name"] == "11°H"
+
+    new_user = db_session.get(User, body["added_new"][0]["id"])
+    assert new_user.section_id != section_h.id
 
 
 def test_add_existing_member_already_in_another_group_conflicts(client, db_session):
@@ -189,7 +236,7 @@ def test_add_existing_member_already_in_another_group_conflicts(client, db_sessi
     response = client.post(
         f"/api/v1/admin/student-groups/{group_b.id}/members",
         json={"new_students": [], "existing_student_ids": [already_busy.id]},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 409
@@ -216,7 +263,7 @@ def test_add_members_invalid_student_id_rejected(client, db_session):
     response = client.post(
         f"/api/v1/admin/student-groups/{group.id}/members",
         json={"new_students": [], "existing_student_ids": [999999]},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 400
@@ -254,10 +301,16 @@ def test_adding_members_to_group_with_existing_project_joins_them_to_it(client, 
     response = client.post(
         f"/api/v1/admin/student-groups/{group.id}/members",
         json={
-            "new_students": [{"full_name": "Nuevo Integrante", "email": "nuevo.integrante@lasalle.edu.co"}],
+            "new_students": [
+                {
+                    "full_name": "Nuevo Integrante",
+                    "email": "nuevo.integrante@lasalle.edu.co",
+                    "section_name": "11°F",
+                }
+            ],
             "existing_student_ids": [free_student.id],
         },
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 200
@@ -312,7 +365,7 @@ def test_adding_existing_member_already_in_other_project_skips_project_join_not_
     response = client.post(
         f"/api/v1/admin/student-groups/{group.id}/members",
         json={"new_students": [], "existing_student_ids": [busy_elsewhere.id]},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 200

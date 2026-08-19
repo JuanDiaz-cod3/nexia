@@ -105,6 +105,30 @@ def _validate_new_students(students: list[StudentGroupStudentInput]) -> None:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"detail": f"Correo inválido: {student.email}", "code": "invalid_email"},
             )
+        if not student.section_name.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "detail": f"Sección inválida para {student.full_name or student.email}",
+                    "code": "invalid_section",
+                },
+            )
+
+
+# Find-or-create de una Section por nombre, igual al que hacia antes
+# create_student_group una sola vez para todo el grupo - ahora hace falta
+# por estudiante (grupos mixtos), asi que queda en su propia funcion.
+def _get_or_create_section(db: Session, admin: User, academic_year_id: int, name: str) -> Section:
+    section = (
+        db.query(Section)
+        .filter_by(school_id=admin.school_id, academic_year_id=academic_year_id, name=name)
+        .first()
+    )
+    if section is None:
+        section = Section(school_id=admin.school_id, academic_year_id=academic_year_id, name=name)
+        db.add(section)
+        db.flush()
+    return section
 
 
 # Compartido entre create_student_group y add_group_members: crea N cuentas
@@ -112,17 +136,29 @@ def _validate_new_students(students: list[StudentGroupStudentInput]) -> None:
 # quien llama, para que new_students y existing_student_ids (en
 # add_group_members) queden en la misma transaccion atomica. Asume que
 # _validate_new_students ya corrio.
+#
+# Cada estudiante trae su propia section_name - un grupo puede mezclar
+# integrantes de secciones distintas (ver CLAUDE.md). section_cache evita
+# repetir la consulta/creacion de Section cuando varios estudiantes del
+# mismo request comparten seccion; el llamador puede pasar un cache ya
+# sembrado (ej. con la seccion de referencia del grupo, ya resuelta).
 def _create_students_in_group(
     db: Session,
     admin: User,
-    section: Section,
     group: StudentGroup,
     academic_year_id: int,
     students: list[StudentGroupStudentInput],
     student_role: Role | None,
+    section_cache: dict[str, Section] | None = None,
 ) -> list[StudentGroupStudentOut]:
+    cache = section_cache if section_cache is not None else {}
     created: list[StudentGroupStudentOut] = []
     for student in students:
+        section = cache.get(student.section_name)
+        if section is None:
+            section = _get_or_create_section(db, admin, academic_year_id, student.section_name)
+            cache[student.section_name] = section
+
         base_username = student.email.split("@", 1)[0]
         username = _unique_username(db, admin.school_id, base_username)
         temp_password = _generate_temp_password()
@@ -153,6 +189,7 @@ def _create_students_in_group(
                 full_name=user.full_name,
                 username=user.username,
                 email=user.email,
+                section_name=section.name,
                 temporary_password=temp_password,
             )
         )
@@ -184,7 +221,16 @@ def list_student_groups(
         school_id=admin.school_id, academic_year_id=academic_year.id
     )
     if section_id is not None:
-        query = query.filter_by(section_id=section_id)
+        # "Grupos con algun integrante en esta seccion", no "grupos cuya
+        # seccion de referencia es esta" - un grupo mixto (integrantes de
+        # 11A y 11B) tiene que aparecer al navegar cualquiera de las dos,
+        # no solo la del primer estudiante que se haya tipeado al crearlo.
+        query = (
+            query.join(StudentGroupMember, StudentGroupMember.group_id == StudentGroup.id)
+            .join(User, User.id == StudentGroupMember.user_id)
+            .filter(User.section_id == section_id)
+            .distinct()
+        )
     groups = query.order_by(StudentGroup.id).all()
 
     out: list[StudentGroupOut] = []
@@ -282,34 +328,26 @@ def create_student_group(
     # esto lo dispara el admin a proposito, si algo falla es mejor no dejar
     # a medio crear un grupo con 2 de 4 estudiantes.
     try:
-        section = (
-            db.query(Section)
-            .filter_by(
-                school_id=admin.school_id,
-                academic_year_id=academic_year.id,
-                name=payload.section_name,
-            )
-            .first()
+        # La seccion del primer estudiante queda como "seccion de referencia"
+        # del grupo (StudentGroup.section_id, NOT NULL) - organiza la
+        # navegacion del admin (GET /admin/student-groups?section_id=, el
+        # label "Grupo N"), no restringe a los demas integrantes: cada quien
+        # guarda su propia seccion en su User.section_id.
+        reference_section = _get_or_create_section(
+            db, admin, academic_year.id, payload.students[0].section_name
         )
-        if section is None:
-            section = Section(
-                school_id=admin.school_id,
-                academic_year_id=academic_year.id,
-                name=payload.section_name,
-            )
-            db.add(section)
-            db.flush()
 
         group = StudentGroup(
             school_id=admin.school_id,
             academic_year_id=academic_year.id,
-            section_id=section.id,
+            section_id=reference_section.id,
         )
         db.add(group)
         db.flush()
 
+        section_cache = {reference_section.name: reference_section}
         created = _create_students_in_group(
-            db, admin, section, group, academic_year.id, payload.students, student_role
+            db, admin, group, academic_year.id, payload.students, student_role, section_cache
         )
 
         db.commit()
@@ -325,8 +363,8 @@ def create_student_group(
 
     return StudentGroupCreateOut(
         group_id=group.id,
-        section_id=section.id,
-        section_name=section.name,
+        section_id=reference_section.id,
+        section_name=reference_section.name,
         students=created,
     )
 
@@ -371,7 +409,10 @@ def add_group_members(
         existing_users.append(existing_user)
 
     academic_year = get_current_academic_year(db, admin.school_id)
-    section = db.get(Section, group.section_id)
+    # Solo para el nombre en la respuesta (seccion de referencia del grupo,
+    # ver AddGroupMembersOut) - los estudiantes nuevos traen su propia
+    # section_name, no se les fuerza la del grupo.
+    reference_section = db.get(Section, group.section_id)
     student_role = _get_student_role(db) if payload.new_students else None
     # Se busca ANTES de agregar a nadie: si el grupo ya tiene un proyecto
     # (alguien ya lo creo desde "Mi Proyecto"), los integrantes nuevos
@@ -382,7 +423,7 @@ def add_group_members(
 
     try:
         added_new = _create_students_in_group(
-            db, admin, section, group, academic_year.id, payload.new_students, student_role
+            db, admin, group, academic_year.id, payload.new_students, student_role
         )
 
         added_existing: list[StudentGroupMemberOut] = []
@@ -438,7 +479,7 @@ def add_group_members(
     return AddGroupMembersOut(
         group_id=group.id,
         section_id=group.section_id,
-        section_name=section.name,
+        section_name=reference_section.name if reference_section else "",
         added_new=added_new,
         added_existing=added_existing,
         added_to_project_id=group_project_id,

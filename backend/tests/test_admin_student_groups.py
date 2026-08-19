@@ -68,8 +68,8 @@ def test_non_admin_cannot_create_student_group(client, db_session):
 
     response = client.post(
         "/api/v1/admin/student-groups",
-        json={"section_name": "11°A", "students": [{"full_name": "X", "email": "x@lasalle.edu.co"}]},
-        headers={"Authorization": f"Bearer {token}"},
+        json={"students": [{"full_name": "X", "email": "x@lasalle.edu.co", "section_name": "11°A"}]},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 403
@@ -86,13 +86,20 @@ def test_admin_creates_group_with_generated_credentials(client, db_session):
     response = client.post(
         "/api/v1/admin/student-groups",
         json={
-            "section_name": "11°A",
             "students": [
-                {"full_name": "Estudiante Uno", "email": "estudiante.uno@lasalle.edu.co"},
-                {"full_name": "Estudiante Dos", "email": "estudiante.dos@lasalle.edu.co"},
+                {
+                    "full_name": "Estudiante Uno",
+                    "email": "estudiante.uno@lasalle.edu.co",
+                    "section_name": "11°A",
+                },
+                {
+                    "full_name": "Estudiante Dos",
+                    "email": "estudiante.dos@lasalle.edu.co",
+                    "section_name": "11°A",
+                },
             ],
         },
-        headers={"Authorization": f"Bearer {token}"},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 201
@@ -102,6 +109,7 @@ def test_admin_creates_group_with_generated_credentials(client, db_session):
 
     usernames = {s["username"] for s in body["students"]}
     assert usernames == {"estudiante.uno", "estudiante.dos"}
+    assert {s["section_name"] for s in body["students"]} == {"11°A"}
 
     # Las contraseñas vienen en texto plano en la respuesta (unica vez) -
     # confirmar que lo que se guardo es el HASH, no el texto plano.
@@ -124,6 +132,52 @@ def test_admin_creates_group_with_generated_credentials(client, db_session):
     assert member_group_ids == {body["group_id"]}
 
 
+def test_group_mixes_students_from_different_sections(client, db_session):
+    # El caso real que motivo este cambio: un grupo de proyecto con
+    # integrantes de secciones distintas (ver CLAUDE.md, "Secciones y
+    # grupos"). La seccion de referencia del grupo (body["section_id"]) es
+    # la del primer estudiante, pero cada quien guarda la suya propia.
+    school, academic_year = _make_school_year(db_session)
+    admin = _make_admin(db_session, school)
+    _ensure_role(db_session, "student")
+    db_session.commit()
+    token = create_access_token(admin.id)
+
+    response = client.post(
+        "/api/v1/admin/student-groups",
+        json={
+            "students": [
+                {"full_name": "De Once A", "email": "once.a@lasalle.edu.co", "section_name": "11°A"},
+                {"full_name": "De Once B", "email": "once.b@lasalle.edu.co", "section_name": "11°B"},
+            ],
+        },
+        cookies={"access_token": token},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    by_email = {s["email"]: s for s in body["students"]}
+    assert by_email["once.a@lasalle.edu.co"]["section_name"] == "11°A"
+    assert by_email["once.b@lasalle.edu.co"]["section_name"] == "11°B"
+
+    student_a = db_session.get(User, by_email["once.a@lasalle.edu.co"]["id"])
+    student_b = db_session.get(User, by_email["once.b@lasalle.edu.co"]["id"])
+    assert student_a.section_id != student_b.section_id
+
+    # El grupo mixto tiene que aparecer navegando CUALQUIERA de las dos
+    # secciones, no solo la de referencia (section_id de la respuesta).
+    section_a_id = student_a.section_id
+    section_b_id = student_b.section_id
+    for section_id in (section_a_id, section_b_id):
+        listing = client.get(
+            "/api/v1/admin/student-groups",
+            params={"section_id": section_id},
+            cookies={"access_token": token},
+        )
+        assert listing.status_code == 200
+        assert body["group_id"] in {g["id"] for g in listing.json()}
+
+
 def test_reuses_existing_section_instead_of_duplicating(client, db_session):
     school, academic_year = _make_school_year(db_session)
     admin = _make_admin(db_session, school)
@@ -132,18 +186,16 @@ def test_reuses_existing_section_instead_of_duplicating(client, db_session):
     token = create_access_token(admin.id)
 
     payload = {
-        "section_name": "11°B",
-        "students": [{"full_name": "Solo", "email": "solo@lasalle.edu.co"}],
+        "students": [{"full_name": "Solo", "email": "solo@lasalle.edu.co", "section_name": "11°B"}],
     }
     first = client.post(
-        "/api/v1/admin/student-groups", json=payload, headers={"Authorization": f"Bearer {token}"}
+        "/api/v1/admin/student-groups", json=payload, cookies={"access_token": token}
     )
     payload2 = {
-        "section_name": "11°B",
-        "students": [{"full_name": "Otro", "email": "otro@lasalle.edu.co"}],
+        "students": [{"full_name": "Otro", "email": "otro@lasalle.edu.co", "section_name": "11°B"}],
     }
     second = client.post(
-        "/api/v1/admin/student-groups", json=payload2, headers={"Authorization": f"Bearer {token}"}
+        "/api/v1/admin/student-groups", json=payload2, cookies={"access_token": token}
     )
 
     assert first.status_code == 201 and second.status_code == 201
@@ -171,8 +223,12 @@ def test_username_collision_gets_suffixed(client, db_session):
     token = create_access_token(admin.id)
     response = client.post(
         "/api/v1/admin/student-groups",
-        json={"section_name": "11°C", "students": [{"full_name": "Juan Nuevo", "email": "juan@lasalle.edu.co"}]},
-        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "students": [
+                {"full_name": "Juan Nuevo", "email": "juan@lasalle.edu.co", "section_name": "11°C"}
+            ]
+        },
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 201
@@ -186,12 +242,27 @@ def test_invalid_email_rejected(client, db_session):
 
     response = client.post(
         "/api/v1/admin/student-groups",
-        json={"section_name": "11°A", "students": [{"full_name": "Malo", "email": "no-es-un-correo"}]},
-        headers={"Authorization": f"Bearer {token}"},
+        json={"students": [{"full_name": "Malo", "email": "no-es-un-correo", "section_name": "11°A"}]},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 400
     assert response.json()["code"] == "invalid_email"
+
+
+def test_invalid_section_rejected(client, db_session):
+    school, academic_year = _make_school_year(db_session)
+    admin = _make_admin(db_session, school)
+    token = create_access_token(admin.id)
+
+    response = client.post(
+        "/api/v1/admin/student-groups",
+        json={"students": [{"full_name": "Malo", "email": "malo@lasalle.edu.co", "section_name": "  "}]},
+        cookies={"access_token": token},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "invalid_section"
 
 
 def test_empty_student_list_rejected(client, db_session):
@@ -201,8 +272,8 @@ def test_empty_student_list_rejected(client, db_session):
 
     response = client.post(
         "/api/v1/admin/student-groups",
-        json={"section_name": "11°A", "students": []},
-        headers={"Authorization": f"Bearer {token}"},
+        json={"students": []},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == 400

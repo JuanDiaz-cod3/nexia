@@ -7,7 +7,7 @@ from app.db.session import SessionLocal
 from app.models import Role, User, UserRole, School
 
 ADMIN_USERNAME = "admin"
-ADMIN_EMAIL = "admin@lasalle.edu.co"
+ADMIN_EMAIL = "admin@delasalle.edu.co"
 # Password temporal: must_change_password ya viene en True por default de la
 # tabla (server_default), asi que al primer login se debe forzar el cambio.
 ADMIN_PASSWORD = "CambiaEsto123"
